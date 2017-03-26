@@ -67,7 +67,8 @@ typedef struct
 
 } carMotor_t;
 
-void Controllor_Init(void);
+void PidControllor_Init(void);
+void PidControllor_Process(void);
 
 void Angle_Control(float angle, float gyro);
 void Speed_Control(int16_t cntL, int16_t cntR);

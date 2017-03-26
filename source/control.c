@@ -8,9 +8,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "control.h"
+#include "fsl_pit.h"
 
 /* Definitions ---------------------------------------------------------------*/
-#define SPEED_PERIOD_CONSTANT  (20U)      //速度控制周期
+#define PIT_PERIOD_CONSTANT    (5000U)    //PIT定时器触发（5ms）
+#define SPEED_PERIOD_CONSTANT  (20U)      //速度控制周期（20 * 5 = 100ms）
 
 /* Variables -----------------------------------------------------------------*/
 carAngle_t Angle;
@@ -19,6 +21,7 @@ carDirection_t Direction;
 carMotor_t Motor;
 
 /* Codes ---------------------------------------------------------------------*/
+
 /**
   * @brief  直立环控制器（建议周期：5ms）
   * @retval none
@@ -81,8 +84,7 @@ void Speed_Control(int16_t cntL, int16_t cntR)
 
 void Direction_Control(float offset, float gyro)
 {
-    Direction.PWM_Per = Direction.P * (offset - 1000) + Direction.D * gyro
-            - Direction.PWM;
+    Direction.PWM_Per = Direction.P * offset + Direction.D * gyro - Direction.PWM;
     Direction.PWM += Direction.PWM_Per;
 }
 
@@ -128,8 +130,11 @@ void Motor_Control(int8_t *pwmL, int8_t *pwmR)
     *pwmR = (int8_t) Motor.Final_PWM_R;
 }
 
-void Controllor_Init(void)
+void PidControllor_Init(void)
 {
+    pit_config_t pitConfig;
+
+    /* 默认PID参数设置 */
     Motor.Dead_L = 2.f;
     Motor.Dead_R = 3.f;
 
@@ -148,9 +153,48 @@ void Controllor_Init(void)
 
     Direction.P = 0.1f;
     Direction.D = 0.2f;
+
+    /* PIT定时器初始化 */
+    PIT_GetDefaultConfig(&pitConfig);
+    PIT_Init(PIT, &pitConfig);
+    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0,
+            USEC_TO_COUNT(PIT_PERIOD_CONSTANT, CLOCK_GetFreq(kCLOCK_BusClk)));
+    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
+
+    NVIC_SetPriority(PIT0_IRQn, 6U);
+    EnableIRQ(PIT0_IRQn);
+
+    PIT_StartTimer(PIT, kPIT_Chnl_0);
 }
 
-void Controllor_Process(void)
-{
+/**
+  * @brief  PID处理函数（PIT中断调用）
+  * @retval none
+  */
+#include "imu.h"
+#include "motor.h"
+#include "sbus.h"
 
+extern imuData_t sensor;
+extern mSpeed_t motorInfo;
+extern sbusChannel_t rcInfo;
+
+void PidControllor_Process(void)
+{
+    Motor_GetCnt(&motorInfo);
+
+    Speed.Goal = (rcInfo.ch[2] - 306) * 2;
+
+    Speed_Control(motorInfo.cntL, motorInfo.cntR);
+    Angle_Control(sensor.Pitch, sensor.GyroX);
+    Direction_Control(rcInfo.ch[0] - 1000, sensor.GyroZ);
+    Motor_Control(&motorInfo.pwmL, &motorInfo.pwmR);
+
+    if (rcInfo.ch[4] < 1000)
+    {
+        motorInfo.pwmL = 0;
+        motorInfo.pwmR = 0;
+    }
+
+    Motor_ChangeDuty(motorInfo);
 }
