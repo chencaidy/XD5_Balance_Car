@@ -51,6 +51,10 @@ static uint8_t GDRAM[OLED_PIXEL_H / 8][OLED_PIXEL_W];
 static SemaphoreHandle_t dispReady;
 static bool oled_isPowerOn = false;
 
+/* 防止GCC优化此函数，否则可能失效 */
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+
 static status_t OLED_isDetected(void)
 {
     uint8_t rst;
@@ -70,6 +74,8 @@ static status_t OLED_isDetected(void)
     else
         return kStatus_Success;
 }
+
+#pragma GCC pop_options
 
 static void OLED_GPIO_Config(void)
 {
