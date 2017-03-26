@@ -40,7 +40,7 @@ static uint8_t frame[SBUS_FRAME_SIZE];
 /* Codes ---------------------------------------------------------------------*/
 status_t Sbus_Config(void)
 {
-    status_t status;
+    status_t status = kStatus_Success;
 
     NVIC_SetPriority(SBUS_UART_RX_TX_IRQn, 5);
 
@@ -58,15 +58,13 @@ status_t Sbus_Config(void)
     uart_config.buffer_size = sizeof(g_Buffer),
 
     status = UART_RTOS_Init(&handle, &t_handle, &uart_config);
-    if (status != kStatus_Success)
-        return status;
 
-    return kStatus_Success;
+    return status;
 }
 
 status_t Sbus_UpdateRC(sbusChannel_t *sbus)
 {
-    status_t error;
+    status_t error = kStatus_Success;
     size_t cnt;
 
     /* 检测是否有传入参数 */
@@ -94,7 +92,7 @@ status_t Sbus_UpdateRC(sbusChannel_t *sbus)
 
     if (cnt == SBUS_FRAME_SIZE - 1)
     {
-        if (frame[0] == SBUS_STARTBYTE && frame[SBUS_FRAME_SIZE] == SBUS_ENDBYTE)
+        if (frame[0] == SBUS_STARTBYTE && frame[SBUS_FRAME_SIZE - 1] == SBUS_ENDBYTE)
         {
             sbus->ch[0] = ((frame[1] | frame[2] << 8) & 0x07FF);
             sbus->ch[1] = ((frame[2] >> 3 | frame[3] << 5) & 0x07FF);
@@ -126,5 +124,5 @@ status_t Sbus_UpdateRC(sbusChannel_t *sbus)
         }
     }
 
-    return kStatus_Success;
+    return error;
 }
