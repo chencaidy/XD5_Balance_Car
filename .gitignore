@@ -1,0 +1,25 @@
+# Object files
+*.d
+*.o
+*.mk
+
+# Stack info files
+*.su
+
+# Debug files
+*.axf
+*.map
+*.ld
+*.launch
+
+# Executables
+*.hex
+*.bin
+
+# Eclipse settings
+*.xml
+*.txt
+
+# Eclipse build folder
+Debug/
+Release/
