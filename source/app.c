@@ -2,7 +2,6 @@
  * @file    app.c
  * @brief   Application entry point.
  */
-#include <stdio.h>
 
 /* Freescale includes. */
 #include "pin_mux.h"
@@ -60,7 +59,11 @@ int main(void) {
     SEGGER_SYSVIEW_Conf();
     /* 打印欢迎信息 */
     PRINTF("\r\n");
-    PRINTF("*************************************************\r\n");
+#ifdef NDEBUG
+    PRINTF("*************** (Release version) ***************\r\n");
+#else
+    PRINTF("**************** (Debug version) ****************\r\n");
+#endif
     PRINTF("*   Welcome to XinDian-5 Balance Car Project!   *\r\n");
     PRINTF("*************************************************\r\n");
 
@@ -101,16 +104,22 @@ static void demo_Task(void *pvParameters)
 
         Blackbox_Insert(CAM_GetBitmap(), 600);
 
-        if(GETCHAR()=='a')
+        char RTT;
+        RTT = GETCHAR();
+        switch (RTT)
         {
-            PRINTF("\r\n--> Recording...\r\n");
-            Blackbox_Start();
-        }
-
-        if(GETCHAR()=='b')
-        {
-            PRINTF("\r\n--> Record finished.\r\n");
-            Blackbox_Stop();
+            case 'a':
+            {
+                PRINTF("\r\n--> Recording...\r\n");
+                Blackbox_Start();
+                break;
+            }
+            case 'b':
+            {
+                PRINTF("\r\n--> Record finished.\r\n");
+                Blackbox_Stop();
+                break;
+            }
         }
 
 //        CAM_ImageExtract(Pixmap);
@@ -122,65 +131,26 @@ static void demo_Task(void *pvParameters)
     }
 }
 
-#include "fsl_pit.h"
-extern carSpeed_t Speed;
-
-void PIT0_IRQHandler(void)
-{
-    traceISR_ENTER();
-
-    /* Clear interrupt flag.*/
-    PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, kPIT_TimerFlag);
-
-    Motor_GetCnt(&motorInfo);
-
-    Speed.Goal = (rcInfo.ch[2] - 306) * 2;
-
-    Speed_Control(motorInfo.cntL, motorInfo.cntR);
-    Angle_Control(sensor.Pitch, sensor.GyroX);
-    Direction_Control(rcInfo.ch[0], sensor.GyroZ);
-    Motor_Control(&motorInfo.pwmL, &motorInfo.pwmR);
-
-    if (rcInfo.ch[4] < 1000)
-    {
-        motorInfo.pwmL = 0;
-        motorInfo.pwmR = 0;
-    }
-
-    Motor_ChangeDuty(motorInfo);
-
-    traceISR_EXIT();
-}
-
 static void sensor_Task(void *pvParameters)
 {
     status_t status;
 
+    /* 姿态传感器初始化 */
     status = IMU_Config();
     if(status != kStatus_Success)
     {
         PRINTF("Task suspend with error code %d \r\n", status);
         vTaskSuspend(NULL);
     }
-
+    /* 摄像头初始化 */
     status = CAM_Config();
-    if (status != kStatus_Success)
-    {
-        PRINTF("Task suspend with error code %d \r\n", status);
-        vTaskSuspend(NULL);
-    }
-
-    Controllor_Init();
-
-    pit_config_t pitConfig;
-
-    PIT_GetDefaultConfig(&pitConfig);
-    PIT_Init(PIT, &pitConfig);
-    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0, USEC_TO_COUNT(5000U, CLOCK_GetFreq(kCLOCK_BusClk)));
-    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
-    NVIC_SetPriority(PIT0_IRQn, 6U);
-    EnableIRQ(PIT0_IRQn);
-    PIT_StartTimer(PIT, kPIT_Chnl_0);
+//    if (status != kStatus_Success)
+//    {
+//        PRINTF("Task suspend with error code %d \r\n", status);
+//        vTaskSuspend(NULL);
+//    }
+    /* PID控制器初始化 */
+    PidControllor_Init();
 
     while (1)
     {
