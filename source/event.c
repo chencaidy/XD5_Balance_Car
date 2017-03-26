@@ -9,6 +9,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "fsl_device_registers.h"
 #include "fsl_gpio.h"
+#include "fsl_pit.h"
 
 #include "FreeRTOS.h"
 
@@ -16,9 +17,11 @@
 #include "imu.h"
 #include "camera.h"
 
+#include "control.h"
+
 /* Interrupts ----------------------------------------------------------------*/
 /**
-  * @brief  PORTB中断服务程序
+  * @brief  PORTB中断服务程序（MPU9250）
   * @retval none
   */
 void PORTB_IRQHandler(void)
@@ -40,7 +43,7 @@ void PORTB_IRQHandler(void)
 }
 
 /**
-  * @brief  PORTC中断服务程序
+  * @brief  PORTC中断服务程序（摄像头）
   * @retval none
   */
 void PORTC_IRQHandler(void)
@@ -57,6 +60,23 @@ void PORTC_IRQHandler(void)
         i = 0;
         LED_Red_Toggle();
     }
+
+    traceISR_EXIT();
+}
+
+/**
+  * @brief  PIT0中断服务程序（PID控制器）
+  * @retval none
+  */
+void PIT0_IRQHandler(void)
+{
+    traceISR_ENTER();
+
+    /* Clear interrupt flag.*/
+    PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, kPIT_TimerFlag);
+
+    /* PID处理 */
+    PidControllor_Process();
 
     traceISR_EXIT();
 }
