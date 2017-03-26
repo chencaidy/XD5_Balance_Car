@@ -491,10 +491,7 @@ int DbgConsole_Getchar(void)
     {
         return -1;
     }
-    while (kStatus_Success != s_debugConsole.ops.rx_union.GetChar(s_debugConsole.base, (uint8_t *)(&ch), 1))
-    {
-        return -1;
-    }
+    s_debugConsole.ops.rx_union.GetChar(s_debugConsole.base, (uint8_t *)(&ch), 1);
 
     return ch;
 }
