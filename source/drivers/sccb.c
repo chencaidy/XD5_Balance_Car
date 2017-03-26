@@ -125,7 +125,7 @@ static uint8_t SCCB_GetByte(void)
 
 int SCCB_WriteReg(uint8_t slave_addr, uint8_t reg_addr, uint8_t data)
 {
-    uint8_t err, retry = 5;
+    uint8_t err = 0, retry = 3;
 
     while (retry--)
     {
@@ -151,7 +151,7 @@ int SCCB_WriteReg(uint8_t slave_addr, uint8_t reg_addr, uint8_t data)
 
 int SCCB_ReadReg(uint8_t slave_addr, uint8_t reg_addr, uint8_t *data_ptr)
 {
-    uint8_t err, retry = 5;
+    uint8_t err = 0, retry = 3;
 
     while (retry--)
     {
