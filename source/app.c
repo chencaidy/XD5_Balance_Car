@@ -46,6 +46,11 @@ imuData_t sensor;       //姿态传感器全局变量
 mSpeed_t motorInfo;     //电机信息全局变量
 sbusChannel_t rcInfo;   //遥控通道全局变量
 
+extern carAngle_t Angle;            //PID控制器 - 平衡环参数
+extern carSpeed_t Speed;            //PID控制器 - 速度环参数
+extern carDirection_t Direction;    //PID控制器 - 转向环参数
+extern carMotor_t Motor;            //PID控制器 - 电机输出参数
+
 /*
  * @brief 应用程序入口
  */
@@ -144,11 +149,11 @@ static void sensor_Task(void *pvParameters)
     }
     /* 摄像头初始化 */
     status = CAM_Config();
-//    if (status != kStatus_Success)
-//    {
-//        PRINTF("Task suspend with error code %d \r\n", status);
-//        vTaskSuspend(NULL);
-//    }
+    if (status != kStatus_Success)
+    {
+        PRINTF("Task suspend with error code %d \r\n", status);
+        vTaskSuspend(NULL);
+    }
     /* PID控制器初始化 */
     PidControllor_Init();
 
@@ -225,6 +230,30 @@ static void sdcard_Task(void *pvParameters)
     {
         Blackbox_Process();
     }
+}
+
+/**
+  * @brief  PID处理函数（PIT中断调用）
+  * @retval none
+  */
+void PID_Process(void)
+{
+    Motor_GetCnt(&motorInfo);
+
+    Speed.Goal = (rcInfo.ch[2] - 306) * 4;
+
+    Speed_Control(motorInfo.cntL, motorInfo.cntR);
+    Angle_Control(sensor.Pitch, sensor.GyroX);
+    Direction_Control(rcInfo.ch[0] - 1000, sensor.GyroZ);
+    Motor_Control(&motorInfo.pwmL, &motorInfo.pwmR);
+
+    if (rcInfo.ch[4] < 1000)
+    {
+        motorInfo.pwmL = 0;
+        motorInfo.pwmR = 0;
+    }
+
+    Motor_ChangeDuty(motorInfo);
 }
 
 /**

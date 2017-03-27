@@ -76,7 +76,8 @@ void PIT0_IRQHandler(void)
     PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, kPIT_TimerFlag);
 
     /* PID处理 */
-    PidControllor_Process();
+    void PID_Process(void);
+    PID_Process();
 
     traceISR_EXIT();
 }
