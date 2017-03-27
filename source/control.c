@@ -166,35 +166,3 @@ void PidControllor_Init(void)
 
     PIT_StartTimer(PIT, kPIT_Chnl_0);
 }
-
-/**
-  * @brief  PID处理函数（PIT中断调用）
-  * @retval none
-  */
-#include "imu.h"
-#include "motor.h"
-#include "sbus.h"
-
-extern imuData_t sensor;
-extern mSpeed_t motorInfo;
-extern sbusChannel_t rcInfo;
-
-void PidControllor_Process(void)
-{
-    Motor_GetCnt(&motorInfo);
-
-    Speed.Goal = (rcInfo.ch[2] - 306) * 2;
-
-    Speed_Control(motorInfo.cntL, motorInfo.cntR);
-    Angle_Control(sensor.Pitch, sensor.GyroX);
-    Direction_Control(rcInfo.ch[0] - 1000, sensor.GyroZ);
-    Motor_Control(&motorInfo.pwmL, &motorInfo.pwmR);
-
-    if (rcInfo.ch[4] < 1000)
-    {
-        motorInfo.pwmL = 0;
-        motorInfo.pwmR = 0;
-    }
-
-    Motor_ChangeDuty(motorInfo);
-}
