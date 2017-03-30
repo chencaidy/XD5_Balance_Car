@@ -436,3 +436,62 @@ status_t Blackbox_Process(void)
 
     return kStatus_Success;
 }
+
+/**
+  * @brief  写一个配置文件
+  * @retval None
+  */
+status_t Blackbox_WriteConf(char* file, void* conf, uint32_t len)
+{
+    FRESULT error = kStatus_Success;
+    UINT bw;
+
+    error = f_open(&g_fileObject, (const TCHAR*) file, (FA_CREATE_ALWAYS | FA_WRITE));
+    if (error)
+        PRINTF("FATFS: Open file failed, code %d \r\n", error);
+
+    error = f_write(&g_fileObject, "CONF", 4, &bw);
+    if ((error) || (bw != 4))
+        PRINTF("FATFS: Write file failed, code %d \r\n", error);
+
+    f_write(&g_fileObject, &len, sizeof(uint32_t), &bw);
+    f_write(&g_fileObject, conf, len, &bw);
+
+    f_close(&g_fileObject);
+
+    return error;
+}
+
+/**
+  * @brief  写一个配置文件
+  * @retval None
+  */
+status_t Blackbox_ReadConf(char* file, void* conf, uint32_t len)
+{
+    FRESULT error;
+    UINT br;
+    char head[4];
+    uint32_t size;
+
+    if (conf == NULL || len == 0)
+        return kStatus_InvalidArgument;
+
+    error = f_open(&g_fileObject, (const TCHAR*) file, (FA_READ));
+    if (error)
+        PRINTF("FATFS: Open file failed, code %d \r\n", error);
+
+    error = f_read(&g_fileObject, head, sizeof(head), &br);
+    if ((error) || (br != 4))
+        PRINTF("FATFS: Read file failed, code %d \r\n", error);
+
+    f_read(&g_fileObject, &size, sizeof(uint32_t), &br);
+
+    if (head[0] == 'C' && head[1] == 'O' && head[2] == 'N' && head[3] == 'F' && size == len)
+        f_read(&g_fileObject, conf, size, &br);
+    else
+        PRINTF("FATFS: File checksum error. \r\n");
+
+    f_close(&g_fileObject);
+
+    return error;
+}

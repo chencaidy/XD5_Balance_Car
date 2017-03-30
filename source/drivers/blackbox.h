@@ -48,4 +48,7 @@ status_t Blackbox_Format(void);
 status_t Blackbox_Insert(void *buf, uint16_t len);
 status_t Blackbox_Process(void);
 
+status_t Blackbox_WriteConf(char* file, void* conf, uint32_t len);
+status_t Blackbox_ReadConf(char* file, void* conf, uint32_t len);
+
 #endif /* USERS_BLACKBOX_H_ */
