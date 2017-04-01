@@ -431,10 +431,10 @@ static status_t Sensor_eMPL_Config(void)
     hal.dmp_features =
             DMP_FEATURE_6X_LP_QUAT |
             DMP_FEATURE_TAP |
-            DMP_FEATURE_ANDROID_ORIENT |
+//            DMP_FEATURE_ANDROID_ORIENT |
+//            DMP_FEATURE_GYRO_CAL |
             DMP_FEATURE_SEND_RAW_ACCEL |
-            DMP_FEATURE_SEND_CAL_GYRO |
-            DMP_FEATURE_GYRO_CAL;
+            DMP_FEATURE_SEND_CAL_GYRO;
     dmp_enable_feature(hal.dmp_features);
     dmp_set_fifo_rate(DEFAULT_MPU_HZ);
     mpu_set_dmp_state(1);
@@ -493,6 +493,9 @@ status_t IMU_Config(void)
     status = Sensor_eMPL_Config();
     if (status != kStatus_Success)
         return status;
+
+    /* 运行姿态校正 */
+    run_self_test();
 
     PRINTF("IMU: Configuration with success, task run.\r\n");
     return kStatus_Success;
@@ -663,22 +666,22 @@ void IMU_HandleInput(char cmd)
             else
                 mpu_set_sample_rate(200);
             break;
-        case ',':
-            /* Set hardware to interrupt on gesture event only. This feature is
-             * useful for keeping the MCU asleep until the DMP detects as a tap or
-             * orientation event.
-             */
-            dmp_set_interrupt_mode(DMP_INT_GESTURE);
-            break;
-        case '.':
-            /* Set hardware to interrupt periodically. */
-            dmp_set_interrupt_mode(DMP_INT_CONTINUOUS);
-            break;
-        case '7':
-            /* Reset pedometer. */
-            dmp_set_pedometer_step_count(0);
-            dmp_set_pedometer_walk_time(0);
-            break;
+//        case ',':
+//            /* Set hardware to interrupt on gesture event only. This feature is
+//             * useful for keeping the MCU asleep until the DMP detects as a tap or
+//             * orientation event.
+//             */
+//            dmp_set_interrupt_mode(DMP_INT_GESTURE);
+//            break;
+//        case '.':
+//            /* Set hardware to interrupt periodically. */
+//            dmp_set_interrupt_mode(DMP_INT_CONTINUOUS);
+//            break;
+//        case '7':
+//            /* Reset pedometer. */
+//            dmp_set_pedometer_step_count(0);
+//            dmp_set_pedometer_walk_time(0);
+//            break;
 //        case 'f':
 //            /* Toggle DMP. */
 //            if (hal.dmp_on)
@@ -728,14 +731,14 @@ void IMU_HandleInput(char cmd)
 //        case 'x':
 //            kinetis_reset();
 //            break;
-        case 'v':
-            /* Toggle LP quaternion.
-             * The DMP features can be enabled/disabled at runtime. Use this same
-             * approach for other features.
-             */
-            hal.dmp_features ^= DMP_FEATURE_6X_LP_QUAT;
-            dmp_enable_feature(hal.dmp_features);
-            break;
+//        case 'v':
+//            /* Toggle LP quaternion.
+//             * The DMP features can be enabled/disabled at runtime. Use this same
+//             * approach for other features.
+//             */
+//            hal.dmp_features ^= DMP_FEATURE_6X_LP_QUAT;
+//            dmp_enable_feature(hal.dmp_features);
+//            break;
         default:
             break;
     }
