@@ -65,7 +65,7 @@ static volatile uint8_t rb_num = 0;
 
 static const struct ov7725_reg reg_tbl[] =
 {
-    {OV7725_COM4         , 0x40},
+    {OV7725_COM4         , 0xC1},
     {OV7725_CLKRC        , 0x00},
     {OV7725_COM2         , 0x03},
     {OV7725_COM3         , 0xD0},
