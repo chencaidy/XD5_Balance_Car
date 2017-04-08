@@ -178,20 +178,13 @@ status_t Blackbox_Format(void)
   */
 static status_t Blackbox_Open(void)
 {
-    FRESULT error;
+    FRESULT error = kStatus_Success;
 
-    error = f_open(&g_fileObject, _T("f_1.dat"), (FA_WRITE | FA_READ | FA_CREATE_ALWAYS));
+    error = f_open(&g_fileObject, _T("f_1.ddr"), (FA_WRITE | FA_CREATE_ALWAYS));
     if (error)
-    {
-        if (error == FR_EXIST)
-            PRINTF("FATFS: File exists.\r\n");
-        else
-            PRINTF("FATFS: Open file failed, code %d \r\n", error);
+        PRINTF("FATFS: Open file failed, code %d \r\n", error);
 
-        return kStatus_Fail;
-    }
-
-    return kStatus_Success;
+    return error;
 }
 
 /**
@@ -288,7 +281,7 @@ status_t Blackbox_Stop(void)
   * @param  [in]   len： 写入数据长度
   * @retval status
   */
-status_t Blackbox_Insert(void *buf, uint16_t len)
+static status_t Blackbox_Insert(void *buf, uint16_t len)
 {
     uint16_t lenFix;
 
@@ -495,3 +488,47 @@ status_t Blackbox_ReadConf(char* file, void* conf, uint32_t len)
 
     return error;
 }
+
+/**
+  * @brief  行驶数据记录器（Drive Data Recorder）
+  * @retval None
+  */
+status_t Blackbox_DDR(void* DDR, uint32_t len)
+{
+    status_t status = kStatus_Success;
+
+    status = Blackbox_Insert("_DDR", 4);
+    status = Blackbox_Insert(&len, sizeof(uint32_t));
+    status = Blackbox_Insert(DDR, len);
+
+    return status;
+}
+
+/**
+  * @brief  第一视角图像记录器（Cockpit Image Recorder）
+  * @retval None
+  */
+status_t Blackbox_CIR(void* DIR, uint32_t len)
+{
+    FRESULT status = kStatus_Success;
+
+    status = Blackbox_Insert("_CIR", 4);
+    status = Blackbox_Insert(&len, sizeof(uint32_t));
+    status = Blackbox_Insert(DIR, len);
+
+    return status;
+}
+
+/**
+  * @brief  帧同步器
+  * @retval None
+  */
+status_t Blackbox_SYNC(void)
+{
+    FRESULT status = kStatus_Success;
+
+    status = Blackbox_Insert("_SYNC", 5);
+
+    return status;
+}
+
