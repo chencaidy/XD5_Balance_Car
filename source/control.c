@@ -8,7 +8,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "control.h"
-#include "fsl_pit.h"
 
 /* Definitions ---------------------------------------------------------------*/
 #define PIT_PERIOD_CONSTANT    (5000U)    //PIT定时器触发（5ms）
@@ -147,8 +146,6 @@ void Motor_Control(int8_t *pwmL, int8_t *pwmR)
 
 void PidControllor_Init(void)
 {
-    pit_config_t pitConfig;
-
     /* 默认PID参数设置 */
     Motor.Dead_L = 0.f;
     Motor.Dead_R = 2.4f;
@@ -169,16 +166,4 @@ void PidControllor_Init(void)
     Direction.G_Bias = 0.f;
     Direction.P = 0.75f;
     Direction.D = 0.08f;
-
-//    /* PIT定时器初始化 */
-//    PIT_GetDefaultConfig(&pitConfig);
-//    PIT_Init(PIT, &pitConfig);
-//    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0,
-//            USEC_TO_COUNT(PIT_PERIOD_CONSTANT, CLOCK_GetFreq(kCLOCK_BusClk)));
-//    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
-//
-//    NVIC_SetPriority(PIT0_IRQn, 6U);
-//    EnableIRQ(PIT0_IRQn);
-//
-//    PIT_StartTimer(PIT, kPIT_Chnl_0);
 }

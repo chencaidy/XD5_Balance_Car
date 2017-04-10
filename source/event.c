@@ -64,24 +64,6 @@ void PORTC_IRQHandler(void)
     traceISR_EXIT();
 }
 
-/**
-  * @brief  PIT0中断服务程序（PID控制器）
-  * @retval none
-  */
-void PIT0_IRQHandler(void)
-{
-    traceISR_ENTER();
-
-    /* Clear interrupt flag.*/
-    PIT_ClearStatusFlags(PIT, kPIT_Chnl_0, kPIT_TimerFlag);
-
-    /* PID处理 */
-    void PID_Process(void);
-    PID_Process();
-
-    traceISR_EXIT();
-}
-
 void HardFault_Handler(void)
 {
     /* HardFault指示（三灯全亮） */
