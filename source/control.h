@@ -12,11 +12,13 @@
 
 typedef struct
 {
-    /* Offset为静止时的角度  */
-    float Offset;
+    /* 角度和陀螺仪偏差修正  */
+    float A_Bias;
+    float G_Bias;
     /* 平衡部分PD值 */
     float P;
     float D;
+
     float PWM;
 
 } carAngle_t;
@@ -28,9 +30,9 @@ typedef struct
     /* 速度定义 */
     int L_100ms;
     int R_100ms;
-    float Avg;
+    float Avg_100ms;
     float Goal;
-    float Goal_init;
+    float Goal_Init;
     /* PI控制 */
     float P;              //速度控制P参数
     float I;              //速度控制I参数
@@ -38,19 +40,20 @@ typedef struct
     float I_Limit_PWM_max;
     float I_Limit_PWM_min;
 
-    float PWM_Per;        //速度每次增量值
     float PWM_Integral;   //速度赋给PWM的值，存储的积分
+    float PWM_Per;        //速度每次增量值
     float PWM;            //速度赋给PWM的值
 
 } carSpeed_t;
 
 typedef struct
 {
-    /* 输出开关 */
-    unsigned char Enable;
+    /* 陀螺仪偏差修正  */
+    float G_Bias;
     /* PD控制 */
     float P;              //控制P参数
     float D;              //控制D参数
+
     float PWM_Per;        //方向每次增量值
     float PWM;
 

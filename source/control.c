@@ -13,6 +13,7 @@
 /* Definitions ---------------------------------------------------------------*/
 #define PIT_PERIOD_CONSTANT    (5000U)    //PIT定时器触发（5ms）
 #define SPEED_PERIOD_CONSTANT  (20U)      //速度控制周期（20 * 5 = 100ms）
+#define DIR_PERIOD_CONSTANT    (2U)       //速度控制周期（2 * 5 = 10ms）
 
 /* Variables -----------------------------------------------------------------*/
 carAngle_t Angle;
@@ -28,7 +29,8 @@ carMotor_t Motor;
   */
 void Angle_Control(float angle, float gyro)
 {
-    Angle.PWM = (angle - Angle.Offset) * Angle.P + gyro * Angle.D;
+    Angle.PWM = (angle - Angle.A_Bias) * Angle.P
+            + (gyro - Angle.G_Bias) * Angle.D;
 }
 
 /**
@@ -37,26 +39,29 @@ void Angle_Control(float angle, float gyro)
   */
 void Speed_Control(int16_t cntL, int16_t cntR)
 {
-    static uint8_t Period = 0;      //速度控制周期变量
+    static uint8_t SpdPeriod = 0;      //速度控制周期变量
 
     static float Speed_Error = 0;
     static float Temp_Speed_P;
     static int Temp_L_100ms = 0, Temp_R_100ms = 0;
 
-    Period++;
+    SpdPeriod++;
     Temp_L_100ms += cntL;
     Temp_R_100ms += cntR;
-    if (Period >= SPEED_PERIOD_CONSTANT)   //速度PID反馈调试，100ms一次计算
+    if (SpdPeriod >= SPEED_PERIOD_CONSTANT)   //速度PID反馈调试，100ms一次计算
     {
-        Period = 0;
+        SpdPeriod = 0;
         Speed.L_100ms = Temp_L_100ms;
         Speed.R_100ms = Temp_R_100ms;
-        Speed.Avg = (float) ((Speed.L_100ms + Speed.R_100ms) / 2.0);
+        Speed.Avg_100ms = (float) ((Speed.L_100ms + Speed.R_100ms) / 2.f);
         Temp_L_100ms = 0;
         Temp_R_100ms = 0;
 
         //速度控制
-        Speed_Error = Speed.Goal - Speed.Avg;
+        Speed_Error = Speed.Goal - Speed.Avg_100ms;
+
+//#include "fsl_debug_console.h"
+//        PRINTF("Speed: %d\r\n", (int)Speed.Avg_100ms);
 
         //IIIIIIIIIIIIIIIIIIIII积分IIIIIIIIIIIIIIIIIII
         Speed.PWM_Integral += Speed_Error * Speed.I;
@@ -68,10 +73,10 @@ void Speed_Control(int16_t cntL, int16_t cntR)
 
         //PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
         //并不是普通限幅，用于还没快的时候
-        if (Speed_Error > 0 - Speed.I_Error_Start && Speed_Error < Speed.I_Error_Start)
+        if (Speed_Error > -Speed.I_Error_Start && Speed_Error < Speed.I_Error_Start)
             Temp_Speed_P = Speed.P * Speed_Error;
-        else if (Speed_Error < 0 - Speed.I_Error_Start)
-            Temp_Speed_P = Speed.P * (0 - Speed.I_Error_Start);
+        else if (Speed_Error < -Speed.I_Error_Start)
+            Temp_Speed_P = Speed.P * -Speed.I_Error_Start;
         else if (Speed_Error > Speed.I_Error_Start)
             Temp_Speed_P = Speed.P * Speed.I_Error_Start;
 
@@ -84,13 +89,23 @@ void Speed_Control(int16_t cntL, int16_t cntR)
 
 void Direction_Control(float offset, float gyro)
 {
-    Direction.PWM_Per = Direction.P * offset + Direction.D * gyro - Direction.PWM;
-    Direction.PWM += Direction.PWM_Per;
+    static uint8_t DirPeriod = 0;      //方向控制周期变量
+
+    DirPeriod++;
+    if (DirPeriod >= DIR_PERIOD_CONSTANT)   //转向PID反馈调试，10ms一次计算
+    {
+        DirPeriod = 0;
+
+        Direction.PWM_Per = (offset * Direction.P
+                + (gyro - Direction.G_Bias) * Direction.D - Direction.PWM);
+
+        Direction.PWM += Direction.PWM_Per;
+    }
 }
 
 /*
- * 电机pwm输出    // 300  400  500  600  700  800  900 1000 1100
- * 测得的速度      //1130 2000 2750 3600 4350 5150 5870 6650 7450
+ * 电机pwm输出    //  10   15   20   25   30   35   40   45   50
+ * 测得的速度      //2400 3000 4200 ---- ---- ---- ---- ---- ----
  */
 void Motor_Control(int8_t *pwmL, int8_t *pwmR)
 {
@@ -135,34 +150,35 @@ void PidControllor_Init(void)
     pit_config_t pitConfig;
 
     /* 默认PID参数设置 */
-    Motor.Dead_L = 2.f;
-    Motor.Dead_R = 3.f;
+    Motor.Dead_L = 0.f;
+    Motor.Dead_R = 2.4f;
 
-    Angle.Offset = 31.f;
-    Angle.P = 4.8f;
-    Angle.D = 0.04f;
+    Angle.A_Bias = 35.0f;
+    Angle.G_Bias = 0.f;
+    Angle.P = 10.0f;
+    Angle.D = 0.024f;
 
-    Speed.Goal = 500;
-    Speed.P = 0.04f;
-    Speed.I = 0.0002f;
+    Speed.Goal = 0.f;
+    Speed.P = 0.05f;
+    Speed.I = 0.0075f;
+    Speed.I_Error_Start = 1000;
+    Speed.I_Limit_PWM_max = 35;
+    Speed.I_Limit_PWM_min = -35;
+    Speed.PWM_Integral = 0.f;
 
-    Speed.I_Error_Start = 1200;
-    Speed.I_Limit_PWM_max = 1500;
-    Speed.I_Limit_PWM_min = -1500;
-    Speed.PWM_Integral = 0;
+    Direction.G_Bias = 0.f;
+    Direction.P = 0.75f;
+    Direction.D = 0.08f;
 
-    Direction.P = 0.1f;
-    Direction.D = 0.2f;
-
-    /* PIT定时器初始化 */
-    PIT_GetDefaultConfig(&pitConfig);
-    PIT_Init(PIT, &pitConfig);
-    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0,
-            USEC_TO_COUNT(PIT_PERIOD_CONSTANT, CLOCK_GetFreq(kCLOCK_BusClk)));
-    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
-
-    NVIC_SetPriority(PIT0_IRQn, 6U);
-    EnableIRQ(PIT0_IRQn);
-
-    PIT_StartTimer(PIT, kPIT_Chnl_0);
+//    /* PIT定时器初始化 */
+//    PIT_GetDefaultConfig(&pitConfig);
+//    PIT_Init(PIT, &pitConfig);
+//    PIT_SetTimerPeriod(PIT, kPIT_Chnl_0,
+//            USEC_TO_COUNT(PIT_PERIOD_CONSTANT, CLOCK_GetFreq(kCLOCK_BusClk)));
+//    PIT_EnableInterrupts(PIT, kPIT_Chnl_0, kPIT_TimerInterruptEnable);
+//
+//    NVIC_SetPriority(PIT0_IRQn, 6U);
+//    EnableIRQ(PIT0_IRQn);
+//
+//    PIT_StartTimer(PIT, kPIT_Chnl_0);
 }
