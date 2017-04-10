@@ -71,8 +71,17 @@ struct hal_s {
     unsigned char motion_int_mode;
 };
 
+struct imuConfig_s
+{
+    /* 中断信号量 */
+    SemaphoreHandle_t ready;
+    /* PID回调函数 */
+    void (*pidCallback)(void);
+};
+
 /* eMPL Private typedef ------------------------------------------------------*/
 static struct hal_s hal = {0};
+static struct imuConfig_s imuParam = {0};
 
 /* The sensors can be mounted onto the board in any orientation. The mounting
  * matrix seen below tells the MPL how to rotate the raw data from thei
@@ -89,8 +98,6 @@ static signed char gyro_orientation[9] = { 1, 0, 0,
 static i2c_rtos_handle_t master_rtos_handle;
 static i2c_master_config_t masterConfig;
 static i2c_master_transfer_t masterXfer;
-
-static SemaphoreHandle_t imuReady;
 
 /* Define the init structure for the input INT1 pin */
 static gpio_pin_config_t imu_int_config = {
@@ -471,8 +478,8 @@ status_t IMU_Config(void)
     status_t status;
 
     /* 创建二值信号量 */
-    imuReady = xSemaphoreCreateBinary();
-    if (imuReady == NULL)
+    imuParam.ready = xSemaphoreCreateBinary();
+    if (imuParam.ready == NULL)
     {
         PRINTF("IMU: Semaphore create failed.\r\n");
         return kStatus_Fail;
@@ -510,7 +517,7 @@ status_t IMU_Process(imuData_t *ptr)
     unsigned long sensor_timestamp;
 
     /* 等待数据就绪信号 */
-    if (xSemaphoreTake(imuReady, portMAX_DELAY) != pdTRUE)
+    if (xSemaphoreTake(imuParam.ready, portMAX_DELAY) != pdTRUE)
         return kStatus_Fail;
 
     /* 检测形参是否传入 */
@@ -542,7 +549,7 @@ status_t IMU_Process(imuData_t *ptr)
          */
         dmp_read_fifo(gyro, accel, quat, &sensor_timestamp, &sensors, &more);
         if (more)
-            xSemaphoreGive(imuReady);     //FIFO中还有数据，继续置位
+            xSemaphoreGive(imuParam.ready);     //FIFO中还有数据，继续置位
 
         /* Gyro and accel data are written to the FIFO by the DMP in chip
          * frame and hardware units. This behavior is convenient because it
@@ -574,6 +581,9 @@ status_t IMU_Process(imuData_t *ptr)
             ptr->Roll = euler[1];
             ptr->Yaw = euler[2];
         }
+
+        if (imuParam.pidCallback != NULL)
+            imuParam.pidCallback();
     }
 
     return kStatus_Success;
@@ -757,9 +767,19 @@ void IMU_IRQ_Handle(void)
         /* Clear external interrupt flag. */
         GPIO_ClearPinsInterruptFlags(IMU_INT_GPIO, 1U << IMU_INT_GPIO_PIN);
 
-        xSemaphoreGiveFromISR(imuReady, &reschedule);     //数据已经准备好，置位
+        xSemaphoreGiveFromISR(imuParam.ready, &reschedule);     //数据已经准备好，置位
         portYIELD_FROM_ISR(reschedule);
     }
+}
+
+/**
+  * 如使用到PID控制器，
+  * 可以通过此函数注册PID控制函数。
+  * 注册成功后每次新数据到来时触发PID函数
+  */
+void IMU_PID_SetCallback(void *func)
+{
+    imuParam.pidCallback = func;
 }
 
 inline void IMU_ToggleLED(void)

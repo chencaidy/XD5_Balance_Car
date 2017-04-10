@@ -36,6 +36,7 @@ status_t IMU_Config(void);
 status_t IMU_Process(imuData_t *ptr);
 void IMU_HandleInput(char cmd);
 void IMU_IRQ_Handle(void);
+void IMU_PID_SetCallback(void *func);
 void IMU_ToggleLED(void);
 
 void Sensor_GetTimeStamp(long unsigned int *count);
