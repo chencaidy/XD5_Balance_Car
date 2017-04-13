@@ -10,10 +10,30 @@
 
 #include "fsl_common.h"
 
+typedef enum
+{
+    FPS_50Hz = 0,
+    FPS_75Hz,
+    FPS_112Hz,
+    FPS_150Hz,
+
+} camFPS_e;
+
+/** 姿态参数结构体 */
+typedef struct
+{
+    /* 刷新率 */
+    camFPS_e fps;
+    /* 曝光值 */
+    uint8_t iso;
+
+} camConf_t;
+
 status_t CAM_Config(void);
 
 void CAM_ImageExtract(void *pixmap);
 uint8_t *CAM_GetBitmap(void);
+void CAM_UpdateProfile(camConf_t *cam);
 void CAM_ISR_Handle(void);
 
 /* 寄存器定义 */

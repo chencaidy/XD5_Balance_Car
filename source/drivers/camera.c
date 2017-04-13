@@ -254,6 +254,41 @@ void CAM_ImageExtract(void *pixmap)
     }
 }
 
+void CAM_UpdateProfile(camConf_t *cam)
+{
+    SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CNST, cam->iso);
+
+    switch (cam->fps)
+    {
+        case FPS_50Hz:
+        {
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0xC1);
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x02);
+            break;
+        }
+        case FPS_75Hz:
+        {
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0x41);
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x00);
+            break;
+        }
+        case FPS_112Hz:
+        {
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0x81);
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x00);
+            break;
+        }
+        case FPS_150Hz:
+        {
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0xC1);
+            SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x00);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
 void CAM_ISR_Handle(void)
 {
     if (GPIO_GetPinsInterruptFlags(CAM_VSYNC_GPIO) & (1U << CAM_VSYNC_GPIO_PIN))
