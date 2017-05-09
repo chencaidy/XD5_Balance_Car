@@ -491,15 +491,52 @@ status_t Blackbox_ReadConf(char* file, void* conf, uint32_t len)
 
 /**
   * @brief  行驶数据记录器（Drive Data Recorder）
+  * @param   ch[in]: 记录到哪个通道（0-15）
+  * @param  *val[in]: 记录的数据指针
+  * @param  type[in]: 数据类型
   * @retval None
   */
-status_t Blackbox_DDR(void* DDR, uint32_t len)
+status_t Blackbox_DDR(uint8_t ch, void* val, DDR_Type_e type)
 {
     status_t status = kStatus_Success;
+    uint8_t len = 0;
+
+    switch (type)
+    {
+        case INT8:
+        case UINT8:
+        {
+            len = 1;
+            break;
+        }
+        case INT16:
+        case UINT16:
+        {
+            len = 2;
+            break;
+        }
+        case INT32:
+        case UINT32:
+        case FLOAT:
+        {
+            len = 4;
+            break;
+        }
+        case DOUBLE:
+        {
+            len = 8;
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
 
     status = Blackbox_Insert("_DDR", 4);
-    status = Blackbox_Insert(&len, sizeof(uint32_t));
-    status = Blackbox_Insert(DDR, len);
+    status = Blackbox_Insert(&ch, sizeof(uint8_t));
+    status = Blackbox_Insert(&type, sizeof(uint8_t));
+    status = Blackbox_Insert(val, len);
 
     return status;
 }
@@ -508,13 +545,13 @@ status_t Blackbox_DDR(void* DDR, uint32_t len)
   * @brief  第一视角图像记录器（Cockpit Image Recorder）
   * @retval None
   */
-status_t Blackbox_CIR(void* DIR, uint32_t len)
+status_t Blackbox_CIR(uint8_t* bitmap, uint32_t len)
 {
     FRESULT status = kStatus_Success;
 
     status = Blackbox_Insert("_CIR", 4);
     status = Blackbox_Insert(&len, sizeof(uint32_t));
-    status = Blackbox_Insert(DIR, len);
+    status = Blackbox_Insert(bitmap, len);
 
     return status;
 }
