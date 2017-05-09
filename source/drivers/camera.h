@@ -10,22 +10,21 @@
 
 #include "fsl_common.h"
 
-typedef enum
-{
-    FPS_50Hz = 0,
-    FPS_75Hz,
-    FPS_112Hz,
-    FPS_150Hz,
-
-} camFPS_e;
-
 /** 姿态参数结构体 */
 typedef struct
 {
-    /* 刷新率 */
-    camFPS_e fps;
     /* 曝光值 */
-    uint8_t iso;
+    uint16_t AEC;
+    /* 对比度 */
+    uint8_t CNST;
+    /* 刷新率 */
+    uint8_t FPS;
+    /* 自动曝光 */
+    bool AutoAEC;
+    /* 自动白平衡 */
+    bool AutoAWB;
+    /* 自动增益 */
+    bool AutoAGC;
 
 } camConf_t;
 

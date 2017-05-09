@@ -70,6 +70,7 @@ static const struct ov7725_reg reg_tbl[] =
     {OV7725_COM2         , 0x03},
     {OV7725_COM3         , 0xD0},
     {OV7725_COM7         , 0x40},
+    {OV7725_COM8         , 0xC8},   //关闭AEC AWB AGC
     {OV7725_HSTART       , 0x3F},
     {OV7725_HSIZE        , 0x50},
     {OV7725_VSTRT        , 0x03},
@@ -108,7 +109,7 @@ static const struct ov7725_reg reg_tbl[] =
     {OV7725_BDMStep      , 0x03},
     {OV7725_SDE          , 0x04},
     {OV7725_BRIGHT       , 0x00},
-    {OV7725_CNST         , 70},
+    {OV7725_CNST         , 0x80},
     {OV7725_SIGN         , 0x06},
     {OV7725_UVADJ0       , 0x11},
     {OV7725_UVADJ1       , 0x02},
@@ -256,35 +257,41 @@ void CAM_ImageExtract(void *pixmap)
 
 void CAM_UpdateProfile(camConf_t *cam)
 {
-    SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CNST, cam->iso);
-
-    switch (cam->fps)
+    /* 写入对比度 */
+    SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CNST, cam->CNST);
+    /* 写入曝光时间 */
+    SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_AEC, (uint8_t) (cam->AEC));
+    SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_AECH, (uint8_t) (cam->AEC >> 8));
+    /* 写入自动处理函数 */
+    uint8_t temp = 0xC8;
+    if (cam->AutoAEC == true)
+        temp |= 0x01;   //自动曝光
+    if (cam->AutoAWB == true)
+        temp |= 0x02;   //自动白平衡
+    if (cam->AutoAGC == true)
+        temp |= 0x04;   //自动增益
+    SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM8, temp);
+    /* 写入刷新率 */
+    switch (cam->FPS)
     {
-        case FPS_50Hz:
-        {
+        case 50:
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0xC1);
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x02);
             break;
-        }
-        case FPS_75Hz:
-        {
+        case 75:
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0x41);
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x00);
             break;
-        }
-        case FPS_112Hz:
-        {
+        case 112:
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0x81);
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x00);
             break;
-        }
-        case FPS_150Hz:
-        {
+        case 150:
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_COM4, 0xC1);
             SCCB_WriteReg(CAM_SCCB_ADDR, OV7725_CLKRC, 0x00);
             break;
-        }
         default:
+            PRINTF("Camera: FPS is undefined \r\n");
             break;
     }
 }
