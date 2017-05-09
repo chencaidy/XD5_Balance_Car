@@ -21,9 +21,11 @@
 #include "camera.h"
 #include "sbus.h"
 #include "blackbox.h"
+#include "hmi.h"
 
 /* Others includes. */
 #include "control.h"
+#include "hmiHandle.h"
 
 /* Include internal header to get SEGGER_RTT_CB */
 #include "SEGGER_RTT.h"
@@ -40,6 +42,7 @@ static void sensor_Task(void *pvParameters);
 static void disp_Task(void *pvParameters);
 static void sbus_Task(void *pvParameters);
 static void sdcard_Task(void *pvParameters);
+static void hmi_Task(void *pvParameters);
 
 static void PID_Process(void);
 
@@ -83,10 +86,11 @@ int main(void) {
 
     /* 创建线程 */
     xTaskCreate(demo_Task, "Demo", 512U, NULL, LOW_TASK, NULL);
-    xTaskCreate(sensor_Task, "Sensors", 384U, NULL, HIGH_TASK, NULL);
+    xTaskCreate(sensor_Task, "Sensors", 384U, NULL, REALTIME_TASK, NULL);
     xTaskCreate(disp_Task, "Display", 256U, NULL, LOW_TASK, NULL);
     xTaskCreate(sbus_Task, "Remote", 256U, NULL, HIGH_TASK, NULL);
     xTaskCreate(sdcard_Task, "Storage", 512U, NULL, MEDIUM_TASK, NULL);
+    xTaskCreate(hmi_Task, "HMI", 256U, NULL, MEDIUM_TASK, NULL);
 
     /* 开启内核调度 */
     vTaskStartScheduler();
@@ -212,6 +216,7 @@ static void PID_Process(void)
     Speed_Control(motorInfo.cntL, motorInfo.cntR);
     Angle_Control(sensor.Pitch, sensor.GyroX);
     Direction_Control(-offset, sensor.GyroZ);
+//    Direction_Control((rcInfo.ch[0]-1000)/20, sensor.GyroZ);
     Motor_Control(&motorInfo.pwmL, &motorInfo.pwmR);
 
     if (rcInfo.ch[4] < 1000)
@@ -221,6 +226,18 @@ static void PID_Process(void)
     }
 
     Motor_ChangeDuty(motorInfo);
+
+    if (rcInfo.ch[9] > 1024)
+    {
+        Blackbox_SYNC();
+//        Blackbox_DDR(0, &Angle.PWM, FLOAT);
+//        Blackbox_DDR(1, &Speed.PWM, FLOAT);
+//        Blackbox_DDR(2, &Direction.PWM, FLOAT);
+//        Blackbox_DDR(3, &rcInfo.ch[2], UINT16);
+//        Blackbox_DDR(4, &offset, INT8);
+        Blackbox_DDR(0, &sensor.GyroX, FLOAT);
+        Blackbox_DDR(1, &sensor.GyroZ, FLOAT);
+    }
 }
 
 static void demo_Task(void *pvParameters)
@@ -232,11 +249,6 @@ static void demo_Task(void *pvParameters)
     while (1)
     {
         Algorithm_Bak();
-
-        Blackbox_SYNC();
-
-        Blackbox_CIR(CAM_GetBitmap(), 600);
-//        Blackbox_DDR(&sensor, sizeof(sensor));
 
         char RTT;
         RTT = GETCHAR();
@@ -257,41 +269,6 @@ static void demo_Task(void *pvParameters)
             case 'f':
             {
                 Blackbox_Format();
-                break;
-            }
-            case 'z':
-            {
-                Angle.P += 0.1f;
-                break;
-            }
-            case 'x':
-            {
-                Angle.P -= 0.1f;
-                break;
-            }
-            case 'c':
-            {
-                Angle.D += 0.01f;
-                break;
-            }
-            case 'v':
-            {
-                Angle.D -= 0.01f;
-                break;
-            }
-            case 'b':
-            {
-                Angle.D += 0.001f;
-                break;
-            }
-            case 'n':
-            {
-                Angle.D -= 0.001f;
-                break;
-            }
-            case 'r':
-            {
-                Motor.Dead_R += 0.1f;
                 break;
             }
             case 'i':
@@ -417,10 +394,41 @@ static void sdcard_Task(void *pvParameters)
 //    Blackbox_WriteConf("pid_a.cf", &Angle, sizeof(Angle));
 //    Blackbox_ReadConf("pid_a.cf", &Angle, sizeof(Angle));
 
+    camConf_t camera;
+    Blackbox_ReadConf("cam.cf", &camera, sizeof(camera));
+    CAM_UpdateProfile(&camera);
+
     while (1)
     {
         Blackbox_Process();
         LED_Green_Toggle();
+    }
+}
+
+static void hmi_Task(void *pvParameters)
+{
+    status_t status;
+    uint8_t Packge[32];
+    uint16_t Length = 0;
+
+    status = HMI_Config();
+    if (status != kStatus_Success)
+    {
+        PRINTF("Task suspend with error code %d \r\n", status);
+        vTaskSuspend(NULL);
+    }
+
+    while (1)
+    {
+        HMI_RxHandle();
+
+        status = HMI_GetOnePacket(Packge, &Length);
+        if(status == kStatus_Success)
+        {
+            HMI_RxMsgHandle(Packge);
+
+            LED_Yellow_Toggle();
+        }
     }
 }
 
