@@ -57,6 +57,7 @@ typedef enum
     CONTROL     = 2,
     SENSOR      = 3,
     CAMERA      = 4,
+    BLACKBOX    = 5,
     
 } __attribute__ ((packed)) pageID_e;
 

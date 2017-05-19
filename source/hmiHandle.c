@@ -7,7 +7,9 @@
   
 /* Includes ------------------------------------------------------------------*/
 #include "hmiHandle.h"
+
 #include "fsl_common.h"
+#include "fsl_debug_console.h"
 
 #include "camera.h"
 #include "blackbox.h"
@@ -46,6 +48,25 @@ static int8_t buttonHandle(uint8_t *buf)
                 camera.FPS = 112;
             if (10 == btn->buttonID)    //150hz按钮
                 camera.FPS = 150;
+            break;
+        }
+
+        case BLACKBOX:
+        {
+            if (9 == btn->buttonID)     //启动按钮
+            {
+                Blackbox_Start();
+                PRINTF("\r\n--> Recording...\r\n");
+            }
+            if (10 == btn->buttonID)    //停止按钮
+            {
+                Blackbox_Stop();
+                PRINTF("\r\n--> Record finished.\r\n");
+            }
+            if (11 == btn->buttonID)    //清空按钮
+                Blackbox_Reset();
+            if (12 == btn->buttonID)    //格式化按钮
+                Blackbox_Format();
             break;
         }
 
