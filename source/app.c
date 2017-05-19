@@ -26,6 +26,7 @@
 /* Others includes. */
 #include "control.h"
 #include "hmiHandle.h"
+#include "imgprocess.h"
 
 /* Include internal header to get SEGGER_RTT_CB */
 #include "SEGGER_RTT.h"
@@ -47,11 +48,14 @@ static void hmi_Task(void *pvParameters);
 static void PID_Process(void);
 
 /* Public variables */
+TaskHandle_t sdHandle;
+
 imuData_t sensor;       //姿态传感器全局变量
 mSpeed_t motorInfo;     //电机信息全局变量
 sbusChannel_t rcInfo;   //遥控通道全局变量
 
 uint8_t Pixmap[60][80] = {0};   //解压后图像
+int8_t offset;
 
 extern carAngle_t Angle;            //PID控制器 - 平衡环参数
 extern carSpeed_t Speed;            //PID控制器 - 速度环参数
@@ -89,124 +93,17 @@ int main(void) {
     xTaskCreate(sensor_Task, "Sensors", 384U, NULL, REALTIME_TASK, NULL);
     xTaskCreate(disp_Task, "Display", 256U, NULL, LOW_TASK, NULL);
     xTaskCreate(sbus_Task, "Remote", 256U, NULL, HIGH_TASK, NULL);
-    xTaskCreate(sdcard_Task, "Storage", 512U, NULL, MEDIUM_TASK, NULL);
+    xTaskCreate(sdcard_Task, "Storage", 512U, NULL, MEDIUM_TASK, &sdHandle);
     xTaskCreate(hmi_Task, "HMI", 512U, NULL, MEDIUM_TASK, NULL);
+
+    /* 休眠部分线程 */
+    vTaskSuspend(sdHandle);
 
     /* 开启内核调度 */
     vTaskStartScheduler();
 
     while (1);
     return 0;
-}
-
-#define CAMERA_W        (80U)
-#define CAMERA_H        (60U)
-#define CAMERA_ML       (CAMERA_W/2-1)
-#define CAMERA_MR       (CAMERA_W/2)
-#define CAMERA_MT       (CAMERA_W-1)
-#define CAMERA_HT       (CAMERA_H-1)        //预编译能节省CPU时间
-
-int8_t offset;
-
-void Algorithm_Bak(void)
-{
-    uint8_t h, w;        //当前帧 高,宽 计次
-    uint8_t a = 0, a_max = 0;    //当前帧视距
-    int8_t b = 0, c = 0;    //左线长度，右线长度
-
-    CAM_ImageExtract(Pixmap);
-
-    //获取前方视距，提供分段 PD依据
-    for (w = 0; w < 10; w++)
-    {
-        for (h = 0; h < CAMERA_H; h++)       //左容差范围
-        {
-            if (Pixmap[CAMERA_HT - h][CAMERA_ML - w] == 0xFF)
-            {
-                a++;
-            }
-            else
-            {
-                break;
-            }
-        }
-        if (a > a_max)
-        {
-            a_max = a;
-        }
-        a = 0;
-
-        for (h = 0; h < CAMERA_H; h++)       //右容差范围
-        {
-            if (Pixmap[CAMERA_HT - h][CAMERA_MR + w] == 0xFF)
-            {
-                a++;
-            }
-            else
-            {
-                break;
-            }
-        }
-        if (a > a_max)
-        {
-            a_max = a;
-        }
-        a = 0;
-    }
-
-    //获取左线长度
-    for (w = 0; w < CAMERA_MR; w++)
-    {
-        if (Pixmap[CAMERA_HT - w][CAMERA_ML - w] == 0xFF)
-        {
-            b++;
-        }
-        else
-        {
-            break;
-        }
-    }
-    //获取右线长度
-    for (w = 0; w < CAMERA_MR; w++)
-    {
-        if (Pixmap[CAMERA_HT - w][CAMERA_MR + w] == 0xFF)
-        {
-            c++;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    //超出视距校正
-    if (b == 0 || c == 0)
-    {
-        for (w = 0; w < CAMERA_MR; w++)
-        {
-            if (Pixmap[CAMERA_HT][CAMERA_ML - w] == 0xFF)
-            {
-                b++;
-            }
-            if (Pixmap[CAMERA_HT][CAMERA_MR + w] == 0xFF)
-            {
-                c++;
-            }
-        }
-    }
-
-    //计算偏差
-    offset = b - c;
-
-    OLED_Printf(80, 4, "S1:%6d", a_max);
-    OLED_Printf(80, 5, "S3:%6d", b);
-    OLED_Printf(80, 6, "S5:%6d", c);
-
-    if (rcInfo.ch[9] > 1024)
-    {
-        Blackbox_SYNC();
-        Blackbox_CIR(CAM_GetBitmap(), 600);
-    }
 }
 
 /**
@@ -303,6 +200,9 @@ static void sensor_Task(void *pvParameters)
     PidControllor_Init();
     /* 注册PID回调函数 */
     IMU_PID_SetCallback(PID_Process);
+
+    /* 恢复SD卡线程 */
+    vTaskResume(sdHandle);
 
     while (1)
     {
