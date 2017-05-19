@@ -90,7 +90,7 @@ int main(void) {
     xTaskCreate(disp_Task, "Display", 256U, NULL, LOW_TASK, NULL);
     xTaskCreate(sbus_Task, "Remote", 256U, NULL, HIGH_TASK, NULL);
     xTaskCreate(sdcard_Task, "Storage", 512U, NULL, MEDIUM_TASK, NULL);
-    xTaskCreate(hmi_Task, "HMI", 256U, NULL, MEDIUM_TASK, NULL);
+    xTaskCreate(hmi_Task, "HMI", 512U, NULL, MEDIUM_TASK, NULL);
 
     /* 开启内核调度 */
     vTaskStartScheduler();
@@ -201,6 +201,12 @@ void Algorithm_Bak(void)
     OLED_Printf(80, 4, "S1:%6d", a_max);
     OLED_Printf(80, 5, "S3:%6d", b);
     OLED_Printf(80, 6, "S5:%6d", c);
+
+    if (rcInfo.ch[9] > 1024)
+    {
+        Blackbox_SYNC();
+        Blackbox_CIR(CAM_GetBitmap(), 600);
+    }
 }
 
 /**
@@ -227,17 +233,17 @@ static void PID_Process(void)
 
     Motor_ChangeDuty(motorInfo);
 
-    if (rcInfo.ch[9] > 1024)
-    {
-        Blackbox_SYNC();
+//    if (rcInfo.ch[9] > 1024)
+//    {
+//        Blackbox_SYNC();
 //        Blackbox_DDR(0, &Angle.PWM, FLOAT);
 //        Blackbox_DDR(1, &Speed.PWM, FLOAT);
 //        Blackbox_DDR(2, &Direction.PWM, FLOAT);
 //        Blackbox_DDR(3, &rcInfo.ch[2], UINT16);
 //        Blackbox_DDR(4, &offset, INT8);
-        Blackbox_DDR(0, &sensor.GyroX, FLOAT);
-        Blackbox_DDR(1, &sensor.GyroZ, FLOAT);
-    }
+//        Blackbox_DDR(0, &sensor.GyroX, FLOAT);
+//        Blackbox_DDR(1, &sensor.GyroZ, FLOAT);
+//    }
 }
 
 static void demo_Task(void *pvParameters)
@@ -254,23 +260,6 @@ static void demo_Task(void *pvParameters)
         RTT = GETCHAR();
         switch (RTT)
         {
-            case 'a':
-            {
-                PRINTF("\r\n--> Recording...\r\n");
-                Blackbox_Start();
-                break;
-            }
-            case 's':
-            {
-                PRINTF("\r\n--> Record finished.\r\n");
-                Blackbox_Stop();
-                break;
-            }
-            case 'f':
-            {
-                Blackbox_Format();
-                break;
-            }
             case 'i':
             {
                 PRINTF("\r\n");
@@ -287,7 +276,7 @@ static void demo_Task(void *pvParameters)
             }
         }
 
-        vTaskDelay(10);
+        vTaskDelay(20);
     }
 }
 
@@ -386,14 +375,10 @@ static void sdcard_Task(void *pvParameters)
         PRINTF("Task suspend with error code %d \r\n", status);
         vTaskSuspend(NULL);
     }
+    else
+        LED_Green(ON);
 
-    LED_Green(ON);
-
-//    Blackbox_Format();
-
-//    Blackbox_WriteConf("pid_a.cf", &Angle, sizeof(Angle));
-//    Blackbox_ReadConf("pid_a.cf", &Angle, sizeof(Angle));
-
+    /* 读取设备配置信息 */
     camConf_t camera;
     Blackbox_ReadConf("cam.cf", &camera, sizeof(camera));
     CAM_UpdateProfile(&camera);
