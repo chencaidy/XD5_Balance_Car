@@ -19,6 +19,8 @@
 #include "ff.h"
 #include "diskio.h"
 
+#include <stdio.h>
+
 /* Definitions ---------------------------------------------------------------*/
 #define SDCARD_CD_GPIO         (GPIOE)        //SD卡插入检测引脚
 #define SDCARD_CD_GPIO_PIN     (6U)
@@ -176,11 +178,11 @@ status_t Blackbox_Format(void)
   * @brief  打开文件
   * @retval None
   */
-static status_t Blackbox_Open(void)
+static status_t Blackbox_Open(char* file)
 {
     FRESULT error = kStatus_Success;
 
-    error = f_open(&g_fileObject, _T("f_1.ddr"), (FA_WRITE | FA_CREATE_ALWAYS));
+    error = f_open(&g_fileObject, (const TCHAR*) file, (FA_WRITE | FA_CREATE_ALWAYS));
     if (error)
         PRINTF("FATFS: Open file failed, code %d \r\n", error);
 
@@ -231,18 +233,31 @@ static status_t Blackbox_Write(void *buf, uint32_t len)
   */
 status_t Blackbox_Start(void)
 {
-    status_t status;
+    status_t status = kStatus_Success;
+    FRESULT error = FR_OK;
+    uint32_t fileNum = 1;
+    char fileName[9];
 
     /* 防止重复Start */
-    if(bufManager.isStart == true)
+    if (bufManager.isStart == true)
     {
         PRINTF("BlackBox: Already run.\r\n");
         return kStatus_Fail;
     }
 
+    /* 读取上一次记录的文件号 */
+    error = Blackbox_ReadConf("XD5.NUM", &fileNum, sizeof(uint32_t));
+    if (error == FR_OK)
+        fileNum++;
+
+    /* 生成文件名 */
+    Blackbox_WriteConf("XD5.NUM", &fileNum, sizeof(uint32_t));
+    sprintf(fileName, "D%03d.XD5", fileNum);
+    fileName[8] = '\0';
+
     /* 打开文件 */
-    status = Blackbox_Open();
-    if(status != kStatus_Success)
+    status = Blackbox_Open(fileName);
+    if (status != kStatus_Success)
     {
         bufManager.isStart = false;
         return status;
@@ -251,7 +266,7 @@ status_t Blackbox_Start(void)
     /* 置 isStart 标志 */
     bufManager.isStart = true;
 
-    return kStatus_Success;
+    return status;
 }
 
 /**
@@ -273,6 +288,22 @@ status_t Blackbox_Stop(void)
     xSemaphoreGive(isEvent);
 
     return kStatus_Success;
+}
+
+/**
+  * @brief  复位文件号记录
+  * @retval None
+  */
+status_t Blackbox_Reset(void)
+{
+    status_t status = kStatus_Success;
+    uint32_t fileNum = 0;
+
+    status = Blackbox_WriteConf("XD5.NUM", &fileNum, sizeof(uint32_t));
+    if (status == kStatus_Success)
+        PRINTF("BlackBox: Point reset to \"D001.XD5\".\r\n");
+
+    return status;
 }
 
 /**
