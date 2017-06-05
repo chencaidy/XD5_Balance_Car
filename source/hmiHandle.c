@@ -17,7 +17,7 @@
 
 static pageID_e thisPage;
 
-camConf_t camera;
+extern camConf_t camera;
 
 /**
  * @brief  按钮处理事件

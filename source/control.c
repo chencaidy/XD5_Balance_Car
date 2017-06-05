@@ -147,12 +147,12 @@ void Motor_Control(int8_t *pwmL, int8_t *pwmR)
 void PidControllor_Init(void)
 {
     /* 默认PID参数设置 */
-    Motor.Dead_L = 0.f;
+    Motor.Dead_L = 2.f;
     Motor.Dead_R = 2.4f;
 
-    Angle.A_Bias = 35.0f;
+    Angle.A_Bias = -10.5f;
     Angle.G_Bias = 0.f;
-    Angle.P = 10.0f;
+    Angle.P = 9.0f;
     Angle.D = 0.024f;
 
     Speed.Goal = 0.f;
@@ -164,6 +164,6 @@ void PidControllor_Init(void)
     Speed.PWM_Integral = 0.f;
 
     Direction.G_Bias = 0.f;
-    Direction.P = 0.75f;
-    Direction.D = 0.08f;
+    Direction.P = 0.85f;
+    Direction.D = 0.05f;
 }
