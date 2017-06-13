@@ -7,17 +7,13 @@
 
 
 /* Includes ------------------------------------------------------------------*/
+#include "common.h"
+
 #include "fsl_device_registers.h"
 #include "fsl_gpio.h"
 #include "fsl_pit.h"
 
 #include "FreeRTOS.h"
-
-#include "led.h"
-#include "imu.h"
-#include "camera.h"
-
-#include "control.h"
 
 /* Interrupts ----------------------------------------------------------------*/
 /**

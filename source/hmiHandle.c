@@ -6,18 +6,13 @@
   */
   
 /* Includes ------------------------------------------------------------------*/
-#include "hmiHandle.h"
+#include "common.h"
 
 #include "fsl_common.h"
 #include "fsl_debug_console.h"
 
-#include "camera.h"
-#include "blackbox.h"
-#include "hmi.h"
-
+/* Variables -----------------------------------------------------------------*/
 static pageID_e thisPage;
-
-extern camConf_t camera;
 
 /**
  * @brief  按钮处理事件

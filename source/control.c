@@ -59,9 +59,6 @@ void Speed_Control(int16_t cntL, int16_t cntR)
         //速度控制
         Speed_Error = Speed.Goal - Speed.Avg_100ms;
 
-//#include "fsl_debug_console.h"
-//        PRINTF("Speed: %d\r\n", (int)Speed.Avg_100ms);
-
         //IIIIIIIIIIIIIIIIIIIII积分IIIIIIIIIIIIIIIIIII
         Speed.PWM_Integral += Speed_Error * Speed.I;
         //PWM_Integral限幅
