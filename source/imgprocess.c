@@ -4,10 +4,7 @@
 
 #include <math.h>
 
-#include "oled.h"
-#include "sbus.h"
-#include "camera.h"
-#include "blackbox.h"
+#include "common.h"
 
 #define CAMERA_W        (80U)
 #define CAMERA_H        (60U)
@@ -21,31 +18,18 @@ extern uint8_t Pixmap[60][80];
 extern sbusChannel_t rcInfo;
 
 
-static void img_drawline(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2)
-{
-    float gradient;
-    int8_t h, w;
-
-    gradient = (y2 - y1) / (x2 - x1);
-
-    for (w = x1; w <= x2; w++)
-    {
-        h = (int8_t) (gradient * (w - x1));
-        Pixmap[h][w] = 0;
-    }
-}
-
 static void myline1(int x1, int y1, int x2, int y2)
 {
     /*变量定义开始（2007/10/16增加）*/
-    int iTx; /*x轴终点的相对坐标xa或临时变量*/
-    int iTy; /*y轴终点的相对坐标ya或临时变量*/
-    int iDx; /*x轴方向的步长dx*/
-    int iDy; /*y轴方向的步长dy*/
-    int iFt; /*偏差Fm*/
-    int iSt; /*记数循环数(dx+dy)S*/
-    int iXt; /*x方向循环变量xm*/
-    int iYt; /*y方向循环变量ym*/
+    int iTx;        /*x轴终点的相对坐标xa或临时变量*/
+    int iTy;        /*y轴终点的相对坐标ya或临时变量*/
+    int iDx;        /*x轴方向的步长dx*/
+    int iDy;        /*y轴方向的步长dy*/
+    int iFt;        /*偏差Fm*/
+    int iSt;        /*记数循环数(dx+dy)S*/
+    int iXt;        /*x方向循环变量xm*/
+    int iYt;        /*y方向循环变量ym*/
+
     /*变量定义结束*/
     /*变量初始化开始*/
     /*如果是第三象限或第四象限则换成第一或第二象限*/
@@ -58,8 +42,8 @@ static void myline1(int x1, int y1, int x2, int y2)
         y1 = y2;
         y2 = iTy;
     }
-    iTx = x2 - x1; /*取x轴的相对坐标*/
-    iTy = y2 - y1; /*取y轴的相对坐标*/
+    iTx = x2 - x1;      /*取x轴的相对坐标*/
+    iTy = y2 - y1;      /*取y轴的相对坐标*/
     iDx = 1;
     iDy = 1;
     iFt = 0;
@@ -74,29 +58,29 @@ static void myline1(int x1, int y1, int x2, int y2)
     while (iSt > 0)
     {
         Pixmap[y1 + iYt][x1 + iXt] = 0;
-        if (iTx >= 0) /*如果在第一象限*/
+        if (iTx >= 0)           /*如果在第一象限*/
         {
-            if (iFt < 0) /*如果偏差小于0*/
+            if (iFt < 0)        /*如果偏差小于0*/
             {
-                iYt += iDy; /*y方向走一步*/
+                iYt += iDy;     /*y方向走一步*/
                 iFt += iTx;
             }
-            else /*如果偏差大于或等于0*/
+            else                /*如果偏差大于或等于0*/
             {
-                iXt += iDx; /*x方向走一步*/
+                iXt += iDx;     /*x方向走一步*/
                 iFt -= iTy;
             }
         }
         else
         {
-            if (iFt < 0) /*如果偏差小于0*/
+            if (iFt < 0)        /*如果偏差小于0*/
             {
-                iXt -= iDx; /*负x方向走一步*/
+                iXt -= iDx;     /*负x方向走一步*/
                 iFt += iTy;
             }
-            else /*如果偏差大于或等于0*/
+            else                /*如果偏差大于或等于0*/
             {
-                iYt += iDy; /*y方向走一步*/
+                iYt += iDy;     /*y方向走一步*/
                 iFt += iTx;
             }
         }
@@ -171,14 +155,39 @@ int MedianFilter(void *bitmap)
     return 0;
 }
 
-float normpdf[60] =
-{ 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+float normpdf1[60] =
+{       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0002, 0.0005, 0.0015, 0.0038, 0.0087, 0.0180, 0.0332, 0.0547,
         0.0807, 0.1065, 0.1258, 0.1330, 0.1258, 0.1065, 0.0807, 0.0547, 0.0332,
         0.0180, 0.0087, 0.0038, 0.0015, 0.0005, 0.0002, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, };
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000 };         //系数为30
+
+float normpdf2[60] =
+{       0.0016,0.0027, 0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388,
+        0.0484,0.0579, 0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666,
+        0.0579,0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108, 0.0071, 0.0045,
+        0.0027,0.0016, 0.0009, 0.0005, 0.0002, 0.0001, 0.0001, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,0.0000};           //系数为15
+
+float normpdf3[60] =
+{       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0001, 0.0001,
+        0.0002, 0.0005, 0.0009, 0.0016, 0.0027, 0.0045, 0.0071, 0.0108, 0.0158,
+        0.0222, 0.0299, 0.0388, 0.0484, 0.0579, 0.0666, 0.0737, 0.0782, 0.0798,
+        0.0782, 0.0737, 0.0666, 0.0579, 0.0484, 0.0388, 0.0299, 0.0222, 0.0158,
+        0.0108, 0.0071, 0.0045, 0.0027, 0.0016, 0.0009};          //系数为45
+
+float linspace[60] =
+{2.00 ,1.98 ,1.97 ,1.95 ,1.93 ,1.92 ,1.90 ,1.88 ,1.86 ,1.85 ,1.83 ,1.81 ,1.80 ,1.78,
+        1.76 ,1.75 ,1.73 ,1.71 ,1.69 ,1.68 ,1.66 ,1.64 ,1.63 ,1.61 ,1.59 ,1.58 ,1.56,
+        1.54 ,1.53 ,1.51 ,1.49 ,1.47 ,1.46 ,1.44 ,1.42 ,1.41 ,1.39 ,1.37 ,1.36 ,1.34,
+        1.32 ,1.31 ,1.29 ,1.27 ,1.25 ,1.24 ,1.22 ,1.20 ,1.19 ,1.17 ,1.15 ,1.14 ,1.12,
+        1.10 ,1.08 ,1.07 ,1.05 ,1.03 ,1.02 ,1.00};                //一元修正函数
 
 void img_find_middle(void)
 {
@@ -186,18 +195,23 @@ void img_find_middle(void)
     uint8_t right_border[CAMERA_H] = {0};
     uint8_t middle_line[CAMERA_H] = {0};
     int8_t h, w;        //当前帧 高,宽 计次
-    float ave;         //当前中线的均值
+    float ave = 0;         //当前中线的均值
 
-//
-//    img_cross_search();
-//    img_cross_drawline();
-//    MedianFilter(Pixmap);
+    int8_t mline_len = 0;
+
+    for (h = CAMERA_H - 1; h >= 0; h--)
+    {
+        mline_len = h;
+        if (Pixmap[h][40] == 0)
+            break;
+    }
+    mline_len = 60 - mline_len;                        //找到当前中线的长度
 
     for (h = CAMERA_H - 1; h >55; h--)
     {
         for (w = 40; w < CAMERA_W; w++)
         {
-            right_border[h] = w;
+            right_border[h] = w;                      //找到右边界
             if (Pixmap[h][w] == 0)
                 break;
         }
@@ -205,7 +219,7 @@ void img_find_middle(void)
         for (w = 39; w >= 0; w--)
         {
             left_border[h] = w;
-            if (Pixmap[h][w] == 0)
+            if (Pixmap[h][w] == 0)                   //找到左边界
                 break;
         }
         middle_line[h] = (left_border[h] + right_border[h]) / 2;
@@ -229,19 +243,17 @@ void img_find_middle(void)
 
     for (h = 0; h < CAMERA_H; h++)
     {
-        ave = ave + middle_line[h]*normpdf[h] ;
+//        if(mline_len > 55)
+//            ave = ave + ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
+//        else
+            ave = ave + ((middle_line[h] - 39.5) * linspace[h]) * normpdf1[h];
     }
-//    ave = ave / 60 ;
-    offset = (int8_t)(40 - ave);
+
+    offset = (int8_t) ave;
 
     OLED_Printf(80, 4, "S1:%6d", offset);
 
 
-    if (rcInfo.ch[9] > 1024)
-    {
-        Blackbox_SYNC();
-        Blackbox_CIR(CAM_GetBitmap(), 600);
-    }
 }
 
 void img_cross_search(void)
@@ -257,7 +269,7 @@ void img_cross_search(void)
         if (Pixmap[h][10] == 0)
             break;
         else
-            first_white_count = first_white_count + 1;
+            first_white_count = first_white_count + 1;        //记录第10行白线长度
     }
 
     for (h = 59; h >= 0; h--)
@@ -265,7 +277,7 @@ void img_cross_search(void)
         if (Pixmap[h][70] == 0)
             break;
         else
-            last_white_count = last_white_count + 1;
+            last_white_count = last_white_count + 1;         //记录第70行白线长度
     }
 
     if (first_white_count < 30 && last_white_count > 50)
@@ -284,8 +296,8 @@ void img_cross_search(void)
         {
             if ((black[w + 1] - black[w]) < -5)
             {
-                start_y = black[w];
                 start_x = w;
+                start_y = black[w];
                 break;
             }
         }
@@ -294,14 +306,14 @@ void img_cross_search(void)
         {
             if (black[w + 1] - black[w] < 0)
             {
-                end_y = black[w];
                 end_x = w;
+                end_y = black[w];
                 break;
             }
             else
             {
-                end_y = black[79];
                 end_x = 79;
+                end_y = black[79];
             }
         }
     }
@@ -322,8 +334,8 @@ void img_cross_search(void)
         {
             if ((black[w] - black[w - 1]) > 10)
             {
-                start_y = black[w];
                 start_x = w;
+                start_y = black[w];
                 break;
             }
         }
@@ -332,14 +344,14 @@ void img_cross_search(void)
         {
             if (black[w] - black[w - 1] > 0)
             {
-                end_y = black[w];
                 end_x = w;
+                end_y = black[w];
                 break;
             }
             else
             {
-                end_y = black[0];
                 end_x = 0;
+                end_y = black[0];
             }
         }
     }
@@ -348,103 +360,129 @@ void img_cross_search(void)
 
 }
 
-//void Algorithm_Bak(void)
-//{
-//    uint8_t h, w;        //当前帧 高,宽 计次
-//    uint8_t a = 0, a_max = 0;    //当前帧视距
-//    int8_t b = 0, c = 0;    //左线长度，右线长度
-//
-//    CAM_ImageExtract(Pixmap);
-//
-//    //获取前方视距，提供分段 PD依据
-//    for (w = 0; w < 10; w++)
-//    {
-//        for (h = 0; h < CAMERA_H; h++)       //左容差范围
-//        {
-//            if (Pixmap[CAMERA_HT - h][CAMERA_ML - w] == 0xFF)
-//            {
-//                a++;
-//            }
-//            else
-//            {
-//                break;
-//            }
-//        }
-//        if (a > a_max)
-//        {
-//            a_max = a;
-//        }
-//        a = 0;
-//
-//        for (h = 0; h < CAMERA_H; h++)       //右容差范围
-//        {
-//            if (Pixmap[CAMERA_HT - h][CAMERA_MR + w] == 0xFF)
-//            {
-//                a++;
-//            }
-//            else
-//            {
-//                break;
-//            }
-//        }
-//        if (a > a_max)
-//        {
-//            a_max = a;
-//        }
-//        a = 0;
-//    }
-//
-//    //获取左线长度
-//    for (w = 0; w < CAMERA_MR; w++)
-//    {
-//        if (Pixmap[CAMERA_HT - w][CAMERA_ML - w] == 0xFF)
-//        {
-//            b++;
-//        }
-//        else
-//        {
-//            break;
-//        }
-//    }
-//    //获取右线长度
-//    for (w = 0; w < CAMERA_MR; w++)
-//    {
-//        if (Pixmap[CAMERA_HT - w][CAMERA_MR + w] == 0xFF)
-//        {
-//            c++;
-//        }
-//        else
-//        {
-//            break;
-//        }
-//    }
-//
-//    //超出视距校正
-//    if (b == 0 || c == 0)
-//    {
-//        for (w = 0; w < CAMERA_MR; w++)
-//        {
-//            if (Pixmap[CAMERA_HT][CAMERA_ML - w] == 0xFF)
-//            {
-//                b++;
-//            }
-//            if (Pixmap[CAMERA_HT][CAMERA_MR + w] == 0xFF)
-//            {
-//                c++;
-//            }
-//        }
-//    }
-//
-//    //计算偏差
-//    offset = b - c;
-//
-//    OLED_Printf(80, 4, "S1:%6d", a_max);
-//    OLED_Printf(80, 5, "S3:%6d", b);
-//    OLED_Printf(80, 6, "S5:%6d", c);
-//
-//    if (rcInfo.ch[9] > 1024)
-//    {
-//        Blackbox_SYNC();
-//        Blackbox_CIR(CAM_GetBitmap(), 600);
-//    }
-//}
+void img_circle_search(void)
+{
+    int8_t h, w;
+    uint16_t black_count = 0;
+    uint8_t black[80] = { 0 };
+    uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
+    uint8_t start_y_2 = 0, start_x_2 = 0, end_y_2 = 0, end_x_2 = 0;
+    uint8_t all_white_count = 0;
+    uint8_t new_circle_rate= 0;
+    float circle_rate = 0;
+
+    for(h = 25;h >= 10; h--)
+    {
+        for(w = 20; w <= 70; w++)
+        {
+            if(Pixmap[h][w] == 0)
+                black_count = black_count + 1;
+        }
+    }
+    circle_rate = black_count/750.f;                //计算15*50这个区间内的黑点占有率
+
+    for(h = 59;h >= 0;h--)                          //寻找全白行
+    {
+        for(w = 0;w <= 79;w++)
+        {
+            if(Pixmap[h][w] == 0)
+                break;
+            if(w == 79)
+                all_white_count = all_white_count + 1;
+        }
+    }
+
+
+    for(w = 0;w <= 79;w++)                          //记录每一列的黑线长度
+    {
+        for(h = 59;h >= 0;h--)
+        {
+            black[w] = h;
+            if(Pixmap[h][w] == 0)
+                break;
+        }
+    }
+
+
+
+    if  (all_white_count > 5)               //利用全白行和中心圆近似率来判断圆环
+    {
+        if(circle_rate >  0.5)
+        {
+            for(w = 0; w < 40; w++)
+            {
+                if  ((black[w + 1] - black[w]) < -5)
+                {
+                    start_x = w;
+                    start_y = black[w];
+                    break;
+                }
+                else
+                {
+                    start_x = 0;
+                    start_y = 59;
+                }
+            }
+            end_x = 40;
+            end_y = black[40];
+        }
+    }
+    new_circle_rate = (int8_t)(circle_rate * 10);
+    myline1(start_x, start_y, end_x, end_y);
+    OLED_Printf(80, 6, "S3:%6d", all_white_count);
+    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
+}
+
+void img_smalls_search(void)
+{
+    uint8_t h, w;
+    uint8_t a = 0, a_max=0;
+
+    for (w = 0; w < 10; w++)
+    {
+        for (h = 0; h < CAMERA_H; h++)       //左容差范围
+        {
+            if (Pixmap[CAMERA_HT - h][CAMERA_ML - w] == 0xFF)
+            {
+                a++;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (a > a_max)
+        {
+            a_max = a;
+        }
+        a = 0;
+
+        for (h = 0; h < CAMERA_H; h++)       //右容差范围
+        {
+            if (Pixmap[CAMERA_HT - h][CAMERA_MR + w] == 0xFF)
+            {
+                a++;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (a > a_max)
+        {
+            a_max = a;
+        }
+        a = 0;
+    }
+
+    if(a_max < 58)
+    {
+        Direction.P = 0.85f;
+    }
+    else
+    {
+        Direction.P = 0.45f;
+    }
+
+    OLED_Printf(80, 5, "S2:%6d", a_max);
+}
