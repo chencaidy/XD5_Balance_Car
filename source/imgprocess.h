@@ -12,6 +12,8 @@ int MedianFilter(void *bitmap);
 
 void img_find_middle(void);
 void img_cross_search(void);
+void img_circle_search(void);
+void img_smalls_search(void);
 
 void Algorithm_Bak(void);
 
