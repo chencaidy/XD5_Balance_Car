@@ -77,8 +77,6 @@ status_t Blackbox_Config(void)
 {
     status_t status;
     FRESULT s_fat;
-    FATFS *pfs;
-    DWORD fre_clust, fre_sect, tot_sect;
 
     NVIC_SetPriority(SDHC_IRQ, 6);
 
@@ -110,19 +108,8 @@ status_t Blackbox_Config(void)
 #endif
 
     /* 获取剩余空间 */
-    pfs = &g_fileSystem;
-    s_fat = f_getfree(driverNumberBuffer, &fre_clust, &pfs);
-    if (s_fat != FR_OK)
-    {
-        PRINTF("FATFS: Get free size failed, code %d\r\n", s_fat);
-        return kStatus_Fail;
-    }
-    else
-    {
-        tot_sect = ((pfs->n_fatent - 2) * pfs->csize) / 2048;
-        fre_sect = (fre_clust * pfs->csize) / 2048;
-        PRINTF("BlackBox: Mounted. Total %dMB, Free %dMB.\r\n", tot_sect, fre_sect);
-    }
+    PRINTF("BlackBox: Mounted. Total %dMB, Free %dMB.\r\n", Blackbox_GetTotal(),
+            Blackbox_GetFree());
 
     /* 创建信号量 */
     isEvent = xSemaphoreCreateCounting(2, 0);    //创建计数信号量，队列深度2
@@ -172,6 +159,45 @@ status_t Blackbox_Format(void)
     PRINTF("BlackBox: Formatted with success.\r\n");
 
     return kStatus_Success;
+}
+
+/**
+  * @brief 获取剩余空间（MB）
+  * @retval None
+  */
+uint32_t Blackbox_GetFree(void)
+{
+    FRESULT s_fat;
+    FATFS *pfs;
+    DWORD fre_clust;
+    uint32_t freeSize;
+
+    pfs = &g_fileSystem;
+    s_fat = f_getfree(driverNumberBuffer, &fre_clust, &pfs);
+    if (s_fat != FR_OK)
+    {
+        PRINTF("FATFS: Get free size failed, code %d\r\n", s_fat);
+        return 0;
+    }
+
+    freeSize = (uint32_t) ((fre_clust * pfs->csize) / 2048);
+
+    return freeSize;
+}
+
+/**
+  * @brief 获取总空间（MB）
+  * @retval None
+  */
+uint32_t Blackbox_GetTotal(void)
+{
+    FATFS *pfs;
+    uint32_t totalSize;
+
+    pfs = &g_fileSystem;
+    totalSize = (uint32_t) (((pfs->n_fatent - 2) * pfs->csize) / 2048);
+
+    return totalSize;
 }
 
 /**

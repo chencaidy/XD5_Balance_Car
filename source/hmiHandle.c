@@ -227,6 +227,12 @@ void HMI_TxMsgHandle(void)
             break;
         }
 
+        case BLACKBOX:
+        {
+            HMI_InsertData("free.txt=\"(Free: %dMB)\"", Blackbox_GetFree());
+            break;
+        }
+
         default:
         {
             break;

@@ -56,4 +56,7 @@ status_t Blackbox_ReadConf(char* file, void* conf, uint32_t len);
 status_t Blackbox_Format(void);
 status_t Blackbox_Reset(void);
 
+uint32_t Blackbox_GetFree(void);
+uint32_t Blackbox_GetTotal(void);
+
 #endif /* USERS_BLACKBOX_H_ */
