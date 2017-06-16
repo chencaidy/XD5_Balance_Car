@@ -58,7 +58,7 @@ static int8_t buttonHandle(uint8_t *buf)
                 Blackbox_Stop();
                 PRINTF("\r\n--> Record finished.\r\n");
             }
-            if (11 == btn->buttonID)    //清空按钮
+            if (11 == btn->buttonID)    //复位按钮
                 Blackbox_Reset();
             if (12 == btn->buttonID)    //格式化按钮
                 Blackbox_Format();
@@ -230,6 +230,21 @@ void HMI_TxMsgHandle(void)
         case BLACKBOX:
         {
             HMI_InsertData("free.txt=\"(Free: %dMB)\"", Blackbox_GetFree());
+            break;
+        }
+
+        case REMOTE:
+        {
+            HMI_InsertData("n0.val=%d", rcInfo.ch[0]);
+            HMI_InsertData("n1.val=%d", rcInfo.ch[1]);
+            HMI_InsertData("n2.val=%d", rcInfo.ch[2]);
+            HMI_InsertData("n3.val=%d", rcInfo.ch[3]);
+            HMI_InsertData("n4.val=%d", rcInfo.ch[4]);
+            HMI_InsertData("n5.val=%d", rcInfo.ch[5]);
+            HMI_InsertData("n6.val=%d", rcInfo.ch[6]);
+            HMI_InsertData("n7.val=%d", rcInfo.ch[7]);
+            HMI_InsertData("n8.val=%d", rcInfo.ch[8]);
+            HMI_InsertData("n9.val=%d", rcInfo.ch[9]);
             break;
         }
 

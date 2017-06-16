@@ -58,6 +58,7 @@ typedef enum
     SENSOR      = 3,
     CAMERA      = 4,
     BLACKBOX    = 5,
+    REMOTE      = 6,
     
 } __attribute__ ((packed)) pageID_e;
 
