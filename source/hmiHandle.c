@@ -30,37 +30,37 @@ static int8_t buttonHandle(uint8_t *buf)
     {
         case CAMERA:
         {
-            if (18 == btn->buttonID)    //保存按钮
+            if (15 == btn->buttonID)    //保存按钮
             {
-                Blackbox_WriteConf("cam.cf", &camera, sizeof(camera));
+                Blackbox_WriteConf("/CONFIG/CAM.CF", &camera, sizeof(camera));
                 CAM_UpdateProfile(&camera);
             }
-            if (7 == btn->buttonID)     //50hz按钮
+            if (4 == btn->buttonID)     //50hz按钮
                 camera.FPS = 50;
-            if (8 == btn->buttonID)     //75hz按钮
+            if (5 == btn->buttonID)     //75hz按钮
                 camera.FPS = 75;
-            if (9 == btn->buttonID)     //112hz按钮
+            if (6 == btn->buttonID)     //112hz按钮
                 camera.FPS = 112;
-            if (10 == btn->buttonID)    //150hz按钮
+            if (7 == btn->buttonID)     //150hz按钮
                 camera.FPS = 150;
             break;
         }
 
         case BLACKBOX:
         {
-            if (9 == btn->buttonID)     //启动按钮
+            if (6 == btn->buttonID)     //启动按钮
             {
                 Blackbox_Start();
                 PRINTF("\r\n--> Recording...\r\n");
             }
-            if (10 == btn->buttonID)    //停止按钮
+            if (7 == btn->buttonID)     //停止按钮
             {
                 Blackbox_Stop();
                 PRINTF("\r\n--> Record finished.\r\n");
             }
-            if (11 == btn->buttonID)    //复位按钮
+            if (8 == btn->buttonID)     //复位按钮
                 Blackbox_Reset();
-            if (12 == btn->buttonID)    //格式化按钮
+            if (9 == btn->buttonID)     //格式化按钮
                 Blackbox_Format();
             break;
         }
@@ -90,9 +90,9 @@ static int8_t silderHandle(uint8_t *buf)
     {
         case CAMERA:
         {
-            if (13 == silder->widgetID)     //对比度滑块
+            if (10 == silder->widgetID)     //对比度滑块
                 camera.CNST = silder->val;
-            if (17 == silder->widgetID)     //曝光度滑块
+            if (14 == silder->widgetID)     //曝光度滑块
                 camera.AEC = silder->val;
             break;
         }
@@ -122,11 +122,11 @@ static int8_t doubleHandle(uint8_t *buf)
     {
         case CAMERA:
         {
-            if (19 == silder->widgetID)     //自动曝光按钮
+            if (16 == silder->widgetID)     //自动曝光按钮
                 camera.AutoAEC = silder->val;
-            if (20 == silder->widgetID)     //自动白平衡按钮
+            if (17 == silder->widgetID)     //自动白平衡按钮
                 camera.AutoAWB = silder->val;
-            if (21 == silder->widgetID)     //自动增益按钮
+            if (18 == silder->widgetID)     //自动增益按钮
                 camera.AutoAGC = silder->val;
             break;
         }
@@ -215,7 +215,7 @@ void HMI_TxMsgHandle(void)
     {
         case CAMERA:
         {
-            Blackbox_ReadConf("cam.cf", &camera, sizeof(camera));
+            Blackbox_ReadConf("/CONFIG/CAM.CF", &camera, sizeof(camera));
             HMI_InsertData("fps.val=%d", camera.FPS);
             HMI_InsertData("cnst.val=%d", camera.CNST);
             HMI_InsertData("h_cnst.val=%d", camera.CNST);
