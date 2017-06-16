@@ -182,7 +182,7 @@ static void disp_Task(void *pvParameters)
 {
     status_t status;
     TickType_t xLastWakeTime;
-    const TickType_t xFrequency = 40;
+    const TickType_t xFrequency = 20;
 
     xLastWakeTime = xTaskGetTickCount();
 
@@ -223,7 +223,7 @@ static void sdcard_Task(void *pvParameters)
     }
 
     /* 读取配置信息 */
-    Blackbox_ReadConf("cam.cf", &camera, sizeof(camera));
+    Blackbox_ReadConf("/CONFIG/CAM.CF", &camera, sizeof(camera));
 
     /* 启动需要传入配置信息的线程 */
     vTaskResume(imageHandle);
@@ -295,15 +295,15 @@ static void PID_Process(void)
 
     Motor_ChangeDuty(motorInfo);
 
-    if (rcInfo.ch[9] > 1024)
+    if (rcInfo.ch[5] > 1024)
     {
         Blackbox_SYNC();
-        Blackbox_CIR(CAM_GetBitmap(), 600);
+//        Blackbox_CIR(CAM_GetBitmap(), 600);
 //        Blackbox_DDR(0, &Angle.PWM, FLOAT);
 //        Blackbox_DDR(1, &Speed.PWM, FLOAT);
 //        Blackbox_DDR(2, &Direction.PWM, FLOAT);
-//        Blackbox_DDR(3, &sensor.Pitch, FLOAT);
-//        Blackbox_DDR(4, &sensor.GyroX, FLOAT);
+        Blackbox_DDR(3, &sensor.Pitch, FLOAT);
+        Blackbox_DDR(4, &sensor.GyroX, FLOAT);
 //        Blackbox_DDR(5, &sensor.GyroZ, FLOAT);
     }
 }

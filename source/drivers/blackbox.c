@@ -272,12 +272,12 @@ status_t Blackbox_Start(void)
     }
 
     /* 读取上一次记录的文件号 */
-    error = Blackbox_ReadConf("XD5.NUM", &fileNum, sizeof(uint32_t));
+    error = Blackbox_ReadConf("/CONFIG/XD5.NUM", &fileNum, sizeof(uint32_t));
     if (error == FR_OK)
         fileNum++;
 
     /* 生成文件名 */
-    Blackbox_WriteConf("XD5.NUM", &fileNum, sizeof(uint32_t));
+    Blackbox_WriteConf("/CONFIG/XD5.NUM", &fileNum, sizeof(uint32_t));
     sprintf(fileName, "D%03d.XD5", fileNum);
     fileName[8] = '\0';
 
@@ -325,7 +325,7 @@ status_t Blackbox_Reset(void)
     status_t status = kStatus_Success;
     uint32_t fileNum = 0;
 
-    status = Blackbox_WriteConf("XD5.NUM", &fileNum, sizeof(uint32_t));
+    status = Blackbox_WriteConf("/CONFIG/XD5.NUM", &fileNum, sizeof(uint32_t));
     if (status == kStatus_Success)
         PRINTF("BlackBox: Point reset to \"D001.XD5\".\r\n");
 
