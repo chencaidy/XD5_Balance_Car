@@ -15,3 +15,9 @@ camConf_t camera = {
     .AutoAGC = true,
     .AutoAWB = true,
 };
+
+/* 创建传感器Bias缺省配置 */
+imuConf_t imuBias = {
+    .accel_bias = {0},
+    .gyro_bias = {0},
+};

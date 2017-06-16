@@ -28,6 +28,18 @@ static int8_t buttonHandle(uint8_t *buf)
     
     switch (thisPage)
     {
+        case SENSOR:
+        {
+            if (12 == btn->buttonID)    //校准按钮
+            {
+                if (kStatus_Success == IMU_Calibrate(&imuBias))
+                {
+                    Blackbox_WriteConf("/CONFIG/IMU.CF", &imuBias, sizeof(imuBias));
+                    IMU_SetBias(imuBias);
+                }
+            }
+        }
+
         case CAMERA:
         {
             if (15 == btn->buttonID)    //保存按钮
@@ -213,6 +225,13 @@ void HMI_TxMsgHandle(void)
 {
     switch(thisPage)
     {
+        case SENSOR:
+        {
+            HMI_InsertData("n0.val=%d", (int) (sensor.Pitch * 100.f));
+            HMI_InsertData("n1.val=%d", (int) (sensor.GyroX * 100.f));
+            HMI_InsertData("n2.val=%d", (int) (sensor.GyroZ * 100.f));
+        }
+
         case CAMERA:
         {
             Blackbox_ReadConf("/CONFIG/CAM.CF", &camera, sizeof(camera));

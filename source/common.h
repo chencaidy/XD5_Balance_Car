@@ -31,8 +31,11 @@ extern carMotor_t Motor;            //PID控制器 - 电机输出参数
 
 /* 配置信息全局传递 */
 extern camConf_t camera;
+extern imuConf_t imuBias;
 
 /* 遥控通道信息全局传递 */
 extern sbusChannel_t rcInfo;
+/* 传感器信息全局传递 */
+extern imuData_t sensor;
 
 #endif /* COMMON_H_ */

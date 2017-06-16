@@ -69,6 +69,7 @@ int main(void)
 
     /* 休眠需要传入配置信息的线程，SD卡线程初始化后恢复 */
     vTaskSuspend(imageHandle);
+    vTaskSuspend(senHandle);
 
     /* 开启内核调度 */
     vTaskStartScheduler();
@@ -161,6 +162,9 @@ static void sensor_Task(void *pvParameters)
         vTaskSuspend(NULL);
     }
 
+    /* 写入偏移量 */
+    IMU_SetBias(imuBias);
+
     /* PID控制器初始化 */
     PidControllor_Init();
 
@@ -216,6 +220,7 @@ static void sdcard_Task(void *pvParameters)
     {
         /* 启动需要传入配置信息的线程 */
         vTaskResume(imageHandle);
+        vTaskResume(senHandle);
 
         /* 线程休眠 */
         PRINTF("Task suspend with error code %d \r\n", status);
@@ -224,9 +229,11 @@ static void sdcard_Task(void *pvParameters)
 
     /* 读取配置信息 */
     Blackbox_ReadConf("/CONFIG/CAM.CF", &camera, sizeof(camera));
+    Blackbox_ReadConf("/CONFIG/IMU.CF", &imuBias, sizeof(imuBias));
 
     /* 启动需要传入配置信息的线程 */
     vTaskResume(imageHandle);
+    vTaskResume(senHandle);
     LED_Green(ON);
 
     while (1)
