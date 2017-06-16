@@ -501,9 +501,6 @@ status_t IMU_Config(void)
     if (status != kStatus_Success)
         return status;
 
-    /* 运行姿态校正 */
-    run_self_test();
-
     PRINTF("IMU: Configuration with success, task run.\r\n");
     return kStatus_Success;
 }
@@ -785,4 +782,55 @@ void IMU_PID_SetCallback(void *func)
 inline void IMU_ToggleLED(void)
 {
     GPIO_TogglePinsOutput(IMU_LED_GPIO, 1U << IMU_LED_GPIO_PIN);
+}
+
+status_t IMU_Calibrate(imuConf_t *bias)
+{
+    int result;
+    long gyro[3], accel[3];
+    unsigned char i = 0;
+
+#if defined (MPU6500) || defined (MPU9250)
+    result = mpu_run_6500_self_test(gyro, accel, 0);
+#elif defined (MPU6050) || defined (MPU9150)
+    result = mpu_run_self_test(gyro, accel);
+#endif
+    if (result == 0x7)
+    {
+        /* Test passed. We can trust the gyro data here, so let's push it down
+         * to the DMP.
+         */
+        for (i = 0; i < 3; i++)
+        {
+            gyro[i] = (long) (gyro[i] * 32.8f); //convert to +-1000dps
+            accel[i] *= 2048.f; //convert to +-16G
+            accel[i] = accel[i] >> 16;
+            gyro[i] = (long) (gyro[i] >> 16);
+        }
+
+        for (i = 0; i < 3; i++)
+        {
+            bias->accel_bias[i] = accel[i];
+            bias->gyro_bias[i] = gyro[i];
+        }
+
+        PRINTF("IMU: Calibration Pass.\r\n");
+        return kStatus_Success;
+    }
+    else
+    {
+        PRINTF("IMU: Calibration Failed.\r\n");
+        return kStatus_Fail;
+    }
+}
+
+void IMU_SetBias(imuConf_t bias)
+{
+    mpu_set_gyro_bias_reg(bias.gyro_bias);
+
+#if defined (MPU6500) || defined (MPU9250)
+    mpu_set_accel_bias_6500_reg(bias.accel_bias);
+#elif defined (MPU6050) || defined (MPU9150)
+    mpu_set_accel_bias_6050_reg(bias.accel_bias);
+#endif
 }
