@@ -13,6 +13,9 @@
 #define CAMERA_MT       (CAMERA_W-1)
 #define CAMERA_HT       (CAMERA_H-1)        //预编译能节省CPU时间
 
+#define BLACK           (0U)
+#define WRITE           (255U)
+
 extern int8_t offset;
 extern uint8_t Pixmap[60][80];
 extern sbusChannel_t rcInfo;
@@ -155,7 +158,7 @@ int MedianFilter(void *bitmap)
     return 0;
 }
 
-float normpdf1[60] =
+float normpdf30[60] =
 {       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
@@ -164,7 +167,7 @@ float normpdf1[60] =
         0.0180, 0.0087, 0.0038, 0.0015, 0.0005, 0.0002, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000 };         //系数为30
 
-float normpdf2[60] =
+float normpdf15[60] =
 {       0.0016,0.0027, 0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388,
         0.0484,0.0579, 0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666,
         0.0579,0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108, 0.0071, 0.0045,
@@ -173,7 +176,7 @@ float normpdf2[60] =
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000,0.0000};           //系数为15
 
-float normpdf3[60] =
+float normpdf45[60] =
 {       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0001, 0.0001,
@@ -181,6 +184,16 @@ float normpdf3[60] =
         0.0222, 0.0299, 0.0388, 0.0484, 0.0579, 0.0666, 0.0737, 0.0782, 0.0798,
         0.0782, 0.0737, 0.0666, 0.0579, 0.0484, 0.0388, 0.0299, 0.0222, 0.0158,
         0.0108, 0.0071, 0.0045, 0.0027, 0.0016, 0.0009};          //系数为45
+
+float normpdf50[60] =
+{      0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+       0.0000, 0.0000, 0.0000, 0.0001, 0.0001, 0.0002, 0.0005, 0.0009, 0.0016,
+       0.0027, 0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388, 0.0484,
+       0.0579, 0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666, 0.0579,
+       0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108,
+};                                                              //系数为50
 
 float linspace[60] =
 {2.00 ,1.98 ,1.97 ,1.95 ,1.93 ,1.92 ,1.90 ,1.88 ,1.86 ,1.85 ,1.83 ,1.81 ,1.80 ,1.78,
@@ -191,69 +204,89 @@ float linspace[60] =
 
 void img_find_middle(void)
 {
-    uint8_t left_border[CAMERA_H] = {0};
-    uint8_t right_border[CAMERA_H] = {0};
-    uint8_t middle_line[CAMERA_H] = {0};
-    int8_t h, w;        //当前帧 高,宽 计次
-    float ave = 0;         //当前中线的均值
+#define SEARCH_WIDE (20U)   //中线搜寻范围 (±20)
 
-    int8_t mline_len = 0;
+    int w, h;
+    float left[CAMERA_H] = { 0 };
+    float right[CAMERA_H] = { 0 };
+    float middle[CAMERA_H] = { 0 };
+    float midOffset = 0;
+    float ave = 0;;
 
-    for (h = CAMERA_H - 1; h >= 0; h--)
+    /* 计算第60行的中线偏移 */
+    if (Pixmap[59][39] == BLACK)
     {
-        mline_len = h;
-        if (Pixmap[h][40] == 0)
+        for (w = 0; w < SEARCH_WIDE; w++)
+        {
+            if (Pixmap[59][40 + w] == WRITE)
+            {
+                midOffset = w;
+                break;
+            }
+            if (Pixmap[59][39 - w] == WRITE)
+            {
+                midOffset = -w;
+                break;
+            }
+        }
+    }
+
+    /* 寻找第60行的左线 */
+    for (w = (39 + midOffset); w >= 0; w--)
+    {
+        left[59] = w;
+
+        if (Pixmap[59][w] == BLACK)
             break;
     }
-    mline_len = 60 - mline_len;                        //找到当前中线的长度
-
-    for (h = CAMERA_H - 1; h >55; h--)
+    /* 寻找第60行的右线 */
+    for (w = (40 + midOffset); w < CAMERA_W; w++)
     {
-        for (w = 40; w < CAMERA_W; w++)
-        {
-            right_border[h] = w;                      //找到右边界
-            if (Pixmap[h][w] == 0)
-                break;
-        }
+        right[59] = w;
 
-        for (w = 39; w >= 0; w--)
-        {
-            left_border[h] = w;
-            if (Pixmap[h][w] == 0)                   //找到左边界
-                break;
-        }
-        middle_line[h] = (left_border[h] + right_border[h]) / 2;
+        if (Pixmap[59][w] == BLACK)
+            break;
     }
-    for (h = 55; h >=0; h--)
+    /* 计算第60行中线 */
+    middle[59] = (left[59] + right[59]) / 2.f;
+
+    /* 计算剩下59行中线 */
+    for (h = 58; h >= 0; h--)
     {
-        for (w = middle_line[h + 1]; w < CAMERA_W; w++)
+        for (w = middle[h + 1]; w >= 0; w--)
         {
-            right_border[h] = w;
-            if (Pixmap[h][w] == 0)
+            left[h] = w;
+
+            if (Pixmap[h][w] == BLACK)
                 break;
         }
-        for (w = middle_line[h + 1]; w >= 0; w--)
+
+        for (w = middle[h + 1]; w < CAMERA_W; w++)
         {
-            left_border[h] = w;
-            if (Pixmap[h][w] == 0)
+            right[h] = w;
+
+            if (Pixmap[h][w] == BLACK)
                 break;
         }
-        middle_line[h] = (left_border[h] + right_border[h]) / 2;
+        /* 如果左线等于右线则为无效行，取上一次数据 */
+        if (left[h] == right[h])
+            middle[h] = middle[h + 1];
+        else
+            middle[h] = (left[h] + right[h]) / 2.f;
     }
 
+    /* 计算偏移量 */
     for (h = 0; h < CAMERA_H; h++)
     {
-//        if(mline_len > 55)
-//            ave = ave + ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
+//        if (mline_len > 55)
+//            ave += ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
 //        else
-            ave = ave + ((middle_line[h] - 39.5) * linspace[h]) * normpdf1[h];
+        ave += (middle[h] - 39.5) * normpdf50[h];
     }
 
     offset = (int8_t) ave;
 
     OLED_Printf(80, 4, "S1:%6d", offset);
-
-
 }
 
 void img_cross_search(void)
@@ -436,7 +469,7 @@ void img_circle_search(void)
 void img_smalls_search(void)
 {
     uint8_t h, w;
-    uint8_t a = 0, a_max=0;
+    uint8_t a = 0, a_max=0, b = 0, c = 0;
 
     for (w = 0; w < 10; w++)
     {
@@ -475,14 +508,27 @@ void img_smalls_search(void)
         a = 0;
     }
 
-    if(a_max < 58)
+    for(w = 0; w < 3; w++)
     {
-        Direction.P = 0.85f;
+        for (h = 0; h < 3; h++)
+        {
+            if (Pixmap[h][CAMERA_W - w] == 0x00)
+                b++;
+            if (Pixmap[h][w] == 0x00)
+                c++;
+        }
+    }
+
+    if(a_max < 58 && c < 8 && b < 8)
+    {
+        Direction.P = 0.78f;
     }
     else
     {
-        Direction.P = 0.45f;
+        Direction.P = 0.55f;
     }
 
     OLED_Printf(80, 5, "S2:%6d", a_max);
+    OLED_Printf(80, 6, "S3:%6d", b);
+    OLED_Printf(80, 7, "S4:%6d", c);
 }
