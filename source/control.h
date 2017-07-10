@@ -9,9 +9,12 @@
 #define USERS_CONTROL_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct
 {
+    /* 直立环开关 */
+    bool ON;
     /* 角度和陀螺仪偏差修正  */
     float A_Bias;
     float G_Bias;
@@ -19,14 +22,14 @@ typedef struct
     float P;
     float D;
 
-    float PWM;
+    float PWM;            //直立环最终PWM
 
 } carAngle_t;
 
 typedef struct
 {
-    /* 档位 */
-    unsigned char Mode;
+    /* 速度环开关 */
+    bool ON;
     /* 速度定义 */
     int L_100ms;
     int R_100ms;
@@ -42,12 +45,14 @@ typedef struct
 
     float PWM_Integral;   //速度赋给PWM的值，存储的积分
     float PWM_Per;        //速度每次增量值
-    float PWM;            //速度赋给PWM的值
+    float PWM;            //速度环最终PWM
 
 } carSpeed_t;
 
 typedef struct
 {
+    /* 角度环开关 */
+    bool ON;
     /* 陀螺仪偏差修正  */
     float G_Bias;
     /* PD控制 */
@@ -55,7 +60,7 @@ typedef struct
     float D;              //控制D参数
 
     float PWM_Per;        //方向每次增量值
-    float PWM;
+    float PWM;            //方向环最终PWM
 
 } carDirection_t;
 
