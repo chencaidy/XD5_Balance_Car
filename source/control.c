@@ -18,8 +18,47 @@ carAngle_t Angle;
 carSpeed_t Speed;
 carDirection_t Direction;
 carMotor_t Motor;
+carFailsafe_t Failsafe;
 
 /* Codes ---------------------------------------------------------------------*/
+
+/**
+  * @brief  控制器初始化
+  * @retval none
+  */
+void PidControllor_Init(void)
+{
+    /* 开启控制器 */
+    Angle.ON = true;
+    Speed.ON = true;
+    Direction.ON = true;
+
+    /* 默认PID参数设置 */
+    Motor.Dead_L = 2.f;
+    Motor.Dead_R = 2.4f;
+
+    Angle.A_Bias = -16.5f;
+    Angle.G_Bias = 0.f;
+    Angle.P = 9.0f;
+    Angle.D = 0.028f;
+
+    Speed.Goal = 0.f;
+    Speed.P = 0.05f;
+    Speed.I = 0.0075f;
+    Speed.I_Error_Start = 2500;
+    Speed.I_Limit_PWM_max = 35;
+    Speed.I_Limit_PWM_min = -35;
+    Speed.PWM_Integral = 0.f;
+
+    Direction.G_Bias = 0.f;
+    Direction.P = 0.95f;
+    Direction.D = 0.055f;
+
+    /* 默认失控保护参数 */
+    Failsafe.ON = true;
+    Failsafe.Pitch_Max = 25.f;
+    Failsafe.Pitch_Min = -30.f;
+}
 
 /**
   * @brief  直立环控制器（建议周期：5ms）
@@ -163,31 +202,41 @@ void Motor_Control(int8_t *pwmL, int8_t *pwmR)
     *pwmR = (int8_t) Motor.Final_PWM_R;
 }
 
-void PidControllor_Init(void)
+/**
+  * @brief  失控保护控制器
+  * @param  debug = 1时为调试模式，重启失控保护不会复位控制器
+  * @retval none
+  */
+void Failsafe_Control(float angle, int debug)
 {
-    /* 开启控制器 */
-    Angle.ON = true;
-    Speed.ON = true;
-    Direction.ON = true;
+    /* 失控保护总开关 */
+    if (Failsafe.ON == true)
+    {
+        if (Failsafe.Protected == true)
+            return;
 
-    /* 默认PID参数设置 */
-    Motor.Dead_L = 2.f;
-    Motor.Dead_R = 2.4f;
-
-    Angle.A_Bias = -16.5f;
-    Angle.G_Bias = 0.f;
-    Angle.P = 9.0f;
-    Angle.D = 0.028f;
-
-    Speed.Goal = 0.f;
-    Speed.P = 0.05f;
-    Speed.I = 0.0075f;
-    Speed.I_Error_Start = 2500;
-    Speed.I_Limit_PWM_max = 35;
-    Speed.I_Limit_PWM_min = -35;
-    Speed.PWM_Integral = 0.f;
-
-    Direction.G_Bias = 0.f;
-    Direction.P = 0.95f;
-    Direction.D = 0.055f;
+        if (angle < Failsafe.Pitch_Min || angle > Failsafe.Pitch_Max)
+        {
+            Failsafe.Protected = true;
+            Angle.ON = false;
+            Speed.ON = false;
+            Direction.ON = false;
+        }
+    }
+    else if (debug)
+    {
+        if (Failsafe.Protected == false)
+            return;
+        /* Debug模式下不复位任何控制器，方便调参 */
+        Failsafe.Protected = false;
+    }
+    else
+    {
+        if (Failsafe.Protected == false)
+            return;
+        Failsafe.Protected = false;
+        Angle.ON = true;
+        Speed.ON = true;
+        Direction.ON = true;
+    }
 }

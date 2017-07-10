@@ -28,6 +28,7 @@ extern carAngle_t Angle;            //PID控制器 - 平衡环参数
 extern carSpeed_t Speed;            //PID控制器 - 速度环参数
 extern carDirection_t Direction;    //PID控制器 - 转向环参数
 extern carMotor_t Motor;            //PID控制器 - 电机输出参数
+extern carFailsafe_t Failsafe;      //PID控制器 - 失控保护参数
 
 /* 配置信息全局传递 */
 extern camConf_t camera;
