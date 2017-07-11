@@ -3,6 +3,7 @@
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
+#include "imgprocess.h"
 
 /* 预编译部分图像位置，节省CPU时间 */
 #define CAMERA_W        (80U)
@@ -18,7 +19,6 @@
 #define BLACK_CENTER       (39.5F)
 
 extern float turn;
-extern float offset;
 extern uint8_t Pixmap[60][80];
 
 /* 初始化刹车线检测架结构体 */
@@ -254,7 +254,7 @@ void img_cross_search(void)
     uint8_t all_white_count = 0;
     uint8_t mline_len = 0;
 
-    for(h = 59;h >= 0;h--)                          //寻找全白行
+    for(h = 49;h >= 0;h--)                          //寻找全白行
        {
            for(w = 0;w <= 79;w++)
            {
@@ -729,3 +729,164 @@ void img_brake_scan(void)
 
     OLED_Printf(80, 7, "BC:%6d", Brake.Count);
 }
+
+
+
+imgBarrier_t Barrier =
+{
+    .ON = true,
+    .Flag = false,
+    .Scan_H = 53,
+    .Left_barrier = false,
+    .Right_barrier = false,
+    .Offset = 0,
+    .Delay = 3000,
+    .count = 0,
+};
+
+#include "fsl_debug_console.h"
+void img_barrier_scan(void)
+{
+    int w,h, p_count = 0;
+    uint8_t width[60] = { 0 };
+    static TickType_t LastTime;
+    uint8_t left_lenth = 0;
+    uint8_t right_lenth = 0;
+
+
+    if (Barrier.ON == true)
+    {
+        if (Barrier.Offset == 7 ||Barrier.Offset == -7)
+        {
+            /* FLAG已经设置，开始计时 */
+            if (xTaskGetTickCount() > LastTime + Barrier.Delay)
+            {
+                /* 时间条件满足，取消标志 */
+                Barrier.Offset = 0;
+                Barrier.Left_barrier = false;
+                Barrier.Right_barrier = false;
+            }
+        }
+        else
+        {
+            for (w = 0; w < (CAMERA_W - 1); w++)
+            {
+                if (Pixmap[Barrier.Scan_H][w] != Pixmap[Barrier.Scan_H][w + 1])
+                {
+                    p_count++;
+                }
+            }
+            if (p_count == 4)
+            {
+                /* 满足条件，判断左右 */
+//                Barrier.Flag = true;
+//                LastTime = xTaskGetTickCount();
+                for (w = 39; w >= 0; w--)
+                {
+                    left_lenth = w;
+                    if (Pixmap[Barrier.Scan_H][w] == 0)
+                        break;
+                }
+                for (w = 40; w <= 79; w++)
+                {
+                    right_lenth = w;
+                    if (Pixmap[Barrier.Scan_H][w] == 0)
+                        break;
+                }
+
+                if ((40 - left_lenth) < (right_lenth - 40))
+                {
+                    Barrier.Left_barrier = true;
+                }
+
+                if ((40 - left_lenth) > (right_lenth - 40))
+                {
+                    Barrier.Right_barrier = true;
+                }
+
+                if (Barrier.Left_barrier == true && Barrier.Right_barrier == false)
+                {
+                    Barrier.Offset = 7;
+                    LastTime = xTaskGetTickCount();
+                    PRINTF("FIND LEFT BARRIER");
+
+                }
+
+                if (Barrier.Left_barrier == false && Barrier.Right_barrier == true)
+                {
+                    Barrier.Offset = -7;
+                    LastTime = xTaskGetTickCount();
+                    PRINTF("FIND RIGHT BARRIER");
+
+                }
+            }
+        }
+    }
+}
+//void img_barrier_search(void)
+//{
+//    int8_t h, w;
+//
+//    uint16_t left_barrier_count = 0;
+//    uint16_t right_barrier_count = 0;
+//    uint8_t barrier_count = 0;
+//    uint8_t mline_len = 0;
+//    uint8_t width[60] = { 0 };
+//    static TickType_t LastTime;
+//
+//    if (Barrier.offset == 5 ||Barrier.offset == -5)
+//    {
+//        if (xTaskGetTickCount() > LastTime + Barrier.Delay)
+//        {
+//            Barrier.offset = 0;
+//            Barrier.right_barrier = false;
+//            Barrier.left_barrier = false;
+//        }
+//    }
+//    else
+//    {
+//
+//        if (Barrier.left_barrier == false && Barrier.right_barrier == false)
+//        {
+//            for (h = 59; h > 0; h--)
+//            {
+//                mline_len = h;
+//                if (Pixmap[h][40] == BLACK)
+//                    break;
+//            }
+//            mline_len = 59 - h;                         //判断40行视距长度
+//
+//            if (mline_len > 40)
+//            {
+//                for (h = 59; h >= 30; h--)
+//                {
+//                    for (w = 39; w >= 15; w--)
+//                    {
+//                        if (Pixmap[h][w] == 0)
+//                            left_barrier_count = left_barrier_count + 1;
+//                    }
+//                    for (w = 41; w <= 65; w++)
+//                    {
+//                        if (Pixmap[h][w] == 0)
+//                            right_barrier_count = right_barrier_count + 1;
+//                    }
+//                }
+//                Barrier.left_barrier_rate = left_barrier_count / 750.f;
+//                Barrier.right_barrier_rate = right_barrier_count / 750.f; //计算30*50这个大区间内的黑点占有率
+//
+//                if (Barrier.left_barrier_rate > 0.2)
+//                {
+//
+//                }
+//
+//                if (Barrier.right_barrier_rate > 0.2)
+//                {
+//
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    OLED_Printf(80, 6, "S3:%6d", Barrier.count);
+//}
