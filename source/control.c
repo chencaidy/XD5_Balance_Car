@@ -142,13 +142,13 @@ void Speed_Control(int16_t cntL, int16_t cntR)
     }
 }
 
-void Direction_Control(float offset, float gyro)
+void Direction_Control(float turn, float offset, float gyro)
 {
     /* 速度环总开关 */
     if (Direction.ON == true)
     {
-        /* 增量式PD */
-        Direction.PWM_Per = offset * Direction.P
+        /* 增量式PD，转向值 + 中线偏移值 */
+        Direction.PWM_Per = (turn + offset) * Direction.P
                 + (gyro - Direction.G_Bias) * Direction.D - Direction.PWM;
 
         Direction.PWM += Direction.PWM_Per;

@@ -93,7 +93,7 @@ void PidControllor_Process(void);
 
 void Angle_Control(float angle, float gyro);
 void Speed_Control(int16_t cntL, int16_t cntR);
-void Direction_Control(float offset, float gyro);
+void Direction_Control(float turn, float offset, float gyro);
 void Motor_Control(int8_t *pwmL, int8_t *pwmR);
 
 void Failsafe_Control(float angle, int debug);
