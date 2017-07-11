@@ -1,25 +1,36 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
 #include "imgprocess.h"
-
 #include "common.h"
+/* FreeRTOS kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
 
+/* 预编译部分图像位置，节省CPU时间 */
 #define CAMERA_W        (80U)
 #define CAMERA_H        (60U)
 #define CAMERA_ML       (CAMERA_W/2-1)
 #define CAMERA_MR       (CAMERA_W/2)
 #define CAMERA_MT       (CAMERA_W-1)
-#define CAMERA_HT       (CAMERA_H-1)        //预编译能节省CPU时间
-
+#define CAMERA_HT       (CAMERA_H-1)
+/* 图像黑白定义 */
 #define BLACK           (0U)
 #define WRITE           (255U)
+/* 理想中线值 */
+#define BLACK_CENTER       (39.5F)
 
-extern int8_t offset;
+extern float turn;
+extern float offset;
 extern uint8_t Pixmap[60][80];
-extern sbusChannel_t rcInfo;
 
+/* 初始化刹车线检测架结构体 */
+imgBrake_t Brake = {
+    .ON = true,
+    .Flag = false,
+    .Count = 0,
+    .Delay = 5000,
+    .Scan_H = 55,
+    .P_Limit = 10,
+    .StopDelay = 100,
+};
 
 static void myline1(int x1, int y1, int x2, int y2)
 {
@@ -90,74 +101,6 @@ static void myline1(int x1, int y1, int x2, int y2)
         iSt--;
     }
 }
-
-int MedianFilter(void *bitmap)
-{
-    unsigned char *data = NULL;
-
-    int height = 60;
-    int width = 80;
-    data = bitmap;
-
-    unsigned char pixel[9] = { 0 }; //滑动窗口的像素值，初始为0
-    unsigned char mid; //中值
-    unsigned char temp; //中间变量
-    int flag;
-    int m, i, j, x, h, w, y;
-
-    for (j = 1; j < height - 1; j++)
-    {
-        for (i = 1; i < width - 1; i++)
-        {
-            m = 0;
-            for (y = j - 1; y <= j + 1; y++)
-                for (x = i - 1; x <= i + 1; x++)
-                {
-                    pixel[m] = data[y * width + x];
-                    m = m + 1;
-                }
-            do
-            {
-                flag = 0;
-                for (m = 0; m < 9; m++)
-                {
-                    if (pixel[m] < pixel[m + 1])
-                    {
-                        temp = pixel[m];
-                        pixel[m] = pixel[m + 1];
-                        pixel[m + 1] = temp;
-                        flag = 1;
-                    } //if
-                } //for
-            } while (flag == 1);
-            mid = pixel[4];
-            data[width * j + i] = mid;
-        }
-    }
-    for (i = 0; i < height; i++)
-    {
-        for (j = 2; j < width - 1; j++)
-        {
-            m = 0;
-            for (x = j - 2; x <= j + 2; x++)
-                pixel[m++] = data[i * width + x];
-            for (h = 0; h < 5; h++)
-                for (w = h + 1; w < 5; w++)
-                {
-                    if (pixel[h] > pixel[w])
-                    {
-                        temp = pixel[w];
-                        pixel[w] = pixel[h];
-                        pixel[h] = temp;
-                    }
-                }
-            data[i * width + j] = pixel[2];
-        }
-    }
-
-    return 0;
-}
-
 
 float normpdf30[60] =
 {       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
@@ -292,12 +235,12 @@ void img_find_middle(void)
 //        if (mline_len > 55)
 //            ave += ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
 //        else
-        ave += ((middle[h] - 39.5) * linspace[h]) * normpdf50[h];
+        ave += (middle[h] - BLACK_CENTER) * normpdf50[h];
     }
 
-    offset = (int8_t) (ave + 0.5);
+    turn = ave;
 
-    OLED_Printf(80, 4, "S1:%6d", offset);
+    OLED_Printf(80, 4, "S1:%6d", (int8_t) turn);
 }
 
 void img_cross_search(void)
@@ -738,5 +681,51 @@ void img_smalls_search(void)
     OLED_Printf(80, 7, "S4:%6d", c);
 }
 
+void img_brake_scan(void)
+{
+    int w, p_count = 0;
+    static TickType_t LastTime;
 
+    if (Brake.ON == true)
+    {
+        if (Brake.Flag == true)
+        {
+            /* FLAG已经设置，开始计时 */
+            if (xTaskGetTickCount() > LastTime + Brake.Delay)
+            {
+                /* 时间条件满足，取消标志 */
+                Brake.Flag = false;
+            }
+        }
+        else
+        {
+            for (w = 0; w < (CAMERA_W - 1); w++)
+            {
+                if (Pixmap[Brake.Scan_H][w] != Pixmap[Brake.Scan_H][w + 1])
+                {
+                    p_count++;
+                }
+            }
+            if (p_count > Brake.P_Limit)
+            {
+                /* 满足条件，设置FLAG */
+                Brake.Flag = true;
+                LastTime = xTaskGetTickCount();
+                /* 检测次数 */
+                Brake.Count++;
+            }
+        }
 
+        /* 进行条件判断 */
+        if (Brake.Count == 2)
+        {
+            /* 反正要停了，直接阻塞延时算了，当然是线程阻塞啦_(:3 」∠)_ */
+            vTaskDelay(Brake.StopDelay);
+            Speed.Goal = 0;
+            /* 清除计数 */
+            Brake.Count = 0;
+        }
+    }
+
+    OLED_Printf(80, 7, "BC:%6d", Brake.Count);
+}
