@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <math.h>
+#include "imgprocess.h"
 
 #include "common.h"
 
@@ -158,6 +158,7 @@ int MedianFilter(void *bitmap)
     return 0;
 }
 
+
 float normpdf30[60] =
 {       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
@@ -175,6 +176,15 @@ float normpdf15[60] =
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
         0.0000, 0.0000, 0.0000, 0.0000, 0.0000,0.0000};           //系数为15
+
+float normpdf40[60]=
+{     0.0000,    0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0001, 0.0001, 0.0002, 0.0005, 0.0009, 0.0016, 0.0027,
+        0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388, 0.0484, 0.0579,
+        0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666, 0.0579, 0.0484,
+        0.0388, 0.0299, 0.0222, 0.0158, 0.0108, 0.0071, 0.0045, 0.0027, 0.0016,
+        0.0009, 0.0005, 0.0002, 0.0001, 0.0001, 0.0000,};       //系数为40
 
 float normpdf45[60] =
 {       0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
@@ -195,6 +205,7 @@ float normpdf50[60] =
        0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108,
 };                                                              //系数为50
 
+float *normpdf = normpdf45;
 float linspace[60] =
 {2.00 ,1.98 ,1.97 ,1.95 ,1.93 ,1.92 ,1.90 ,1.88 ,1.86 ,1.85 ,1.83 ,1.81 ,1.80 ,1.78,
         1.76 ,1.75 ,1.73 ,1.71 ,1.69 ,1.68 ,1.66 ,1.64 ,1.63 ,1.61 ,1.59 ,1.58 ,1.56,
@@ -281,10 +292,10 @@ void img_find_middle(void)
 //        if (mline_len > 55)
 //            ave += ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
 //        else
-        ave += (middle[h] - 39.5) * normpdf50[h];
+        ave += ((middle[h] - 39.5) * linspace[h]) * normpdf50[h];
     }
 
-    offset = (int8_t) ave;
+    offset = (int8_t) (ave + 0.5);
 
     OLED_Printf(80, 4, "S1:%6d", offset);
 }
@@ -296,24 +307,30 @@ void img_cross_search(void)
     int8_t h, w;
     uint8_t black[80] = { 0 };
     uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
+    uint8_t start_y_2 = 0, start_x_2 = 0, end_y_2 = 0, end_x_2 = 0;
+    uint8_t all_white_count = 0;
+    uint8_t mline_len = 0;
 
-    for (h = 59; h >= 0; h--)
+    for(h = 59;h >= 0;h--)                          //寻找全白行
+       {
+           for(w = 0;w <= 79;w++)
+           {
+               if(Pixmap[h][w] == BLACK)
+                   break;
+               if(w == 79)
+                   all_white_count = all_white_count + 1;
+           }
+       }
+
+    for(h =59;h >0;h--)
     {
-        if (Pixmap[h][10] == 0)
+        mline_len = h;
+        if(Pixmap[h][40] == BLACK)
             break;
-        else
-            first_white_count = first_white_count + 1;        //记录第10行白线长度
     }
+    mline_len = 59 - h;                         //判断40行视距长度
 
-    for (h = 59; h >= 0; h--)
-    {
-        if (Pixmap[h][70] == 0)
-            break;
-        else
-            last_white_count = last_white_count + 1;         //记录第70行白线长度
-    }
-
-    if (first_white_count < 30 && last_white_count > 50)
+    if (all_white_count >= 10 && mline_len > 50)
     {
         for (w = 0; w < 80; w++)
         {
@@ -325,7 +342,7 @@ void img_cross_search(void)
             }
         }
 
-        for (w = 10; w <= 70; w++)
+        for (w = 0; w <= 78; w++)
         {
             if ((black[w + 1] - black[w]) < -5)
             {
@@ -334,7 +351,6 @@ void img_cross_search(void)
                 break;
             }
         }
-
         for ((w = start_x + 1); w <= 78; w++)
         {
             if (black[w + 1] - black[w] < 0)
@@ -349,13 +365,180 @@ void img_cross_search(void)
                 end_y = black[79];
             }
         }
+
+        for (w = 79; w >= 10; w--)
+        {
+            if ((black[w] - black[w - 1]) > 10)
+            {
+                start_x_2 = w;
+                start_y_2 = black[w];
+                break;
+            }
+        }
+
+        for ((w = start_x_2 - 1); w >= 0; w--)
+        {
+            if (black[w] - black[w - 1] > 0)
+            {
+                end_x_2 = w;
+                end_y_2 = black[w];
+                break;
+            }
+            else
+            {
+                end_x_2 = 0;
+                end_y_2 = black[0];
+            }
+        }
     }
 
-    if (first_white_count > 50 && last_white_count < 30)
+//    for (h = 59; h >= 0; h--)
+//    {
+//        if (Pixmap[h][10] == 0)
+//            break;
+//        else
+//            first_white_count = first_white_count + 1;        //记录第10行白线长度
+//    }
+//
+//    for (h = 59; h >= 0; h--)
+//    {
+//        if (Pixmap[h][70] == 0)
+//            break;
+//        else
+//            last_white_count = last_white_count + 1;         //记录第70行白线长度
+//    }
+//
+//    if (first_white_count < 30 && last_white_count > 50)
+//    {
+//        for (w = 0; w < 80; w++)
+//        {
+//            for (h = 59; h >= 0; h--)
+//            {
+//                black[w] = h;
+//                if (Pixmap[h][w] == 0)
+//                    break;
+//            }
+//        }
+//
+//        for (w = 10; w <= 70; w++)
+//        {
+//            if ((black[w + 1] - black[w]) < -5)
+//            {
+//                start_x = w;
+//                start_y = black[w];
+//                break;
+//            }
+//        }
+//
+//        for ((w = start_x + 1); w <= 78; w++)
+//        {
+//            if (black[w + 1] - black[w] < 0)
+//            {
+//                end_x = w;
+//                end_y = black[w];
+//                break;
+//            }
+//            else
+//            {
+//                end_x = 79;
+//                end_y = black[79];
+//            }
+//        }
+//    }
+//
+//    if (first_white_count > 50 && last_white_count < 30)
+//    {
+//        for (w = 0; w < 80; w++)
+//        {
+//            for (h = 59; h >= 0; h--)
+//            {
+//                black[w] = h;
+//                if (Pixmap[h][w] == 0)
+//                    break;
+//            }
+//        }
+//
+//        for (w = 70; w >= 10; w--)
+//        {
+//            if ((black[w] - black[w - 1]) > 10)
+//            {
+//                start_x = w;
+//                start_y = black[w];
+//                break;
+//            }
+//        }
+//
+//        for ((w = start_x - 1); w >=10; w--)
+//        {
+//            if (black[w] - black[w - 1] > 0)
+//            {
+//                end_x = w;
+//                end_y = black[w];
+//                break;
+//            }
+//            else
+//            {
+//                end_x = 0;
+//                end_y = black[0];
+//            }
+//        }
+//    }
+
+    myline1(start_x, start_y, end_x, end_y);
+    myline1(start_x_2, start_y_2, end_x_2, end_y_2);
+    OLED_Printf(80, 5, "S2:%6d", mline_len);
+//    OLED_Printf(80, 6, "S3:%6d", all_white_count);
+}
+
+void img_circle_left_search(void)
+{
+    int8_t h, w;
+    uint16_t black_count = 0;
+    uint16_t small_black_count = 0;
+    uint8_t black[80] = { 0 };
+    uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
+    uint8_t all_white_count = 0;
+    uint8_t new_circle_rate= 0;
+    float circle_rate = 0;
+    float small_rate = 0;
+
+    for(h = 25;h >= 20; h--)
     {
-        for (w = 0; w < 80; w++)
+        for(w = 27; w <= 52; w++)
         {
-            for (h = 59; h >= 0; h--)
+            if(Pixmap[h][w] == 0)
+                small_black_count = small_black_count + 1;
+        }
+    }
+    small_rate = small_black_count/150.f;                //计算15*50这个大区间内的黑点占有率
+
+    if (small_rate > 0.5)
+    {
+
+        for (h = 25; h >= 10; h--)
+        {
+            for (w = 15; w <= 64; w++)
+            {
+                if (Pixmap[h][w] == 0)
+                    black_count = black_count + 1;
+            }
+        }
+        circle_rate = black_count / 750.f;                //计算15*50这个大区间内的黑点占有率
+
+        for (h = 15; h <= 59; h++)                          //寻找全白行
+        {
+            for (w = 0; w <= 79; w++)
+            {
+                if (Pixmap[h][w] == 0)
+                    break;
+                if (w == 79)
+                    all_white_count = all_white_count + 1;
+            }
+        }
+
+        for (w = 0; w <= 79; w++)                          //记录每一列的黑线长度
+        {
+            for (h = 59; h >= 20; h--)
             {
                 black[w] = h;
                 if (Pixmap[h][w] == 0)
@@ -363,88 +546,14 @@ void img_cross_search(void)
             }
         }
 
-        for (w = 70; w >= 10; w--)
+
+
+        if (all_white_count > 5 && circle_rate > 0.5)  //利用全白行和中心圆近似率来判断圆环    左转
         {
-            if ((black[w] - black[w - 1]) > 10)
+
+            for (w = 79; w > 40; w--)
             {
-                start_x = w;
-                start_y = black[w];
-                break;
-            }
-        }
-
-        for ((w = start_x - 1); w >=10; w--)
-        {
-            if (black[w] - black[w - 1] > 0)
-            {
-                end_x = w;
-                end_y = black[w];
-                break;
-            }
-            else
-            {
-                end_x = 0;
-                end_y = black[0];
-            }
-        }
-    }
-
-    myline1(start_x, start_y, end_x, end_y);
-
-}
-
-void img_circle_search(void)
-{
-    int8_t h, w;
-    uint16_t black_count = 0;
-    uint8_t black[80] = { 0 };
-    uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
-    uint8_t start_y_2 = 0, start_x_2 = 0, end_y_2 = 0, end_x_2 = 0;
-    uint8_t all_white_count = 0;
-    uint8_t new_circle_rate= 0;
-    float circle_rate = 0;
-
-    for(h = 25;h >= 10; h--)
-    {
-        for(w = 20; w <= 70; w++)
-        {
-            if(Pixmap[h][w] == 0)
-                black_count = black_count + 1;
-        }
-    }
-    circle_rate = black_count/750.f;                //计算15*50这个区间内的黑点占有率
-
-    for(h = 59;h >= 0;h--)                          //寻找全白行
-    {
-        for(w = 0;w <= 79;w++)
-        {
-            if(Pixmap[h][w] == 0)
-                break;
-            if(w == 79)
-                all_white_count = all_white_count + 1;
-        }
-    }
-
-
-    for(w = 0;w <= 79;w++)                          //记录每一列的黑线长度
-    {
-        for(h = 59;h >= 0;h--)
-        {
-            black[w] = h;
-            if(Pixmap[h][w] == 0)
-                break;
-        }
-    }
-
-
-
-    if  (all_white_count > 5)               //利用全白行和中心圆近似率来判断圆环
-    {
-        if(circle_rate >  0.5)
-        {
-            for(w = 0; w < 40; w++)
-            {
-                if  ((black[w + 1] - black[w]) < -5)
+                if ((black[w] - black[w - 1]) > 5)
                 {
                     start_x = w;
                     start_y = black[w];
@@ -452,18 +561,114 @@ void img_circle_search(void)
                 }
                 else
                 {
-                    start_x = 0;
+                    start_x = 79;
                     start_y = 59;
                 }
             }
             end_x = 40;
             end_y = black[40];
+
+            normpdf = normpdf40;
+        }
+        else
+        {
+            normpdf = normpdf50;
         }
     }
     new_circle_rate = (int8_t)(circle_rate * 10);
     myline1(start_x, start_y, end_x, end_y);
-    OLED_Printf(80, 6, "S3:%6d", all_white_count);
-    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
+//    OLED_Printf(80, 6, "S3:%6d", all_white_count);
+//    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
+}
+
+void img_circle_right_search(void)
+{
+    int8_t h, w;
+    uint16_t black_count = 0;
+    uint16_t small_black_count = 0;
+    uint8_t black[80] = { 0 };
+    uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
+    uint8_t all_white_count = 0;
+    uint8_t new_circle_rate= 0;
+    float circle_rate = 0;
+    float small_rate = 0;
+
+    for(h = 25;h >= 20; h--)
+    {
+        for(w = 27; w <= 52; w++)
+        {
+            if(Pixmap[h][w] == 0)
+                small_black_count = small_black_count + 1;
+        }
+    }
+    small_rate = small_black_count/150.f;                //计算15*50这个大区间内的黑点占有率
+
+    if (small_rate > 0.5)
+    {
+
+        for (h = 25; h >= 10; h--)
+        {
+            for (w = 15; w <= 64; w++)
+            {
+                if (Pixmap[h][w] == 0)
+                    black_count = black_count + 1;
+            }
+        }
+        circle_rate = black_count / 750.f;                //计算15*50这个大区间内的黑点占有率
+
+        for (h = 15; h <= 59; h++)                          //寻找全白行
+        {
+            for (w = 0; w <= 79; w++)
+            {
+                if (Pixmap[h][w] == 0)
+                    break;
+                if (w == 79)
+                    all_white_count = all_white_count + 1;
+            }
+        }
+
+        for (w = 0; w <= 79; w++)                          //记录每一列的黑线长度
+        {
+            for (h = 59; h >= 20; h--)
+            {
+                black[w] = h;
+                if (Pixmap[h][w] == 0)
+                    break;
+            }
+        }
+    }
+
+    if (all_white_count > 5 && circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环         右转
+    {
+        for (w = 0; w < 40; w++)
+        {
+            if ((black[w + 1] - black[w]) < -5)
+            {
+                start_x = w;
+                start_y = black[w];
+                break;
+            }
+            else
+            {
+                start_x = 0;
+                start_y = 59;
+            }
+        }
+        end_x = 40;
+        end_y = black[40];
+
+        normpdf = normpdf40;
+    }
+    else
+    {
+        normpdf = normpdf45;
+    }
+
+
+    new_circle_rate = (int8_t)(circle_rate * 10);
+    myline1(start_x, start_y, end_x, end_y);
+//    OLED_Printf(80, 6, "S3:%6d", all_white_count);
+//    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
 }
 
 void img_smalls_search(void)
@@ -532,3 +737,6 @@ void img_smalls_search(void)
     OLED_Printf(80, 6, "S3:%6d", b);
     OLED_Printf(80, 7, "S4:%6d", c);
 }
+
+
+
