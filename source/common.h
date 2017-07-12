@@ -30,6 +30,10 @@ extern carDirection_t Direction;    //PID控制器 - 转向环参数
 extern carMotor_t Motor;            //PID控制器 - 电机输出参数
 extern carFailsafe_t Failsafe;      //PID控制器 - 失控保护参数
 
+/* 图像参数全局传递 */
+extern imgBrake_t Brake;
+extern imgBarrier_t Barrier;
+
 /* 配置信息全局传递 */
 extern camConf_t camera;
 extern imuConf_t imuBias;
