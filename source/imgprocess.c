@@ -1,9 +1,9 @@
 #include "imgprocess.h"
 #include "common.h"
+#include "fsl_debug_console.h"
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "imgprocess.h"
 
 /* 预编译部分图像位置，节省CPU时间 */
 #define CAMERA_W        (80U)
@@ -15,13 +15,16 @@
 /* 图像黑白定义 */
 #define BLACK           (0U)
 #define WRITE           (255U)
+/* 障碍左右定义 */
+#define LEFT            (0U)
+#define RIGHT           (1U)
 /* 理想中线值 */
 #define BLACK_CENTER       (39.5F)
 
 extern float turn;
 extern uint8_t Pixmap[60][80];
 
-/* 初始化刹车线检测架结构体 */
+/* 初始化刹车线检测结构体 */
 imgBrake_t Brake = {
     .ON = true,
     .Flag = false,
@@ -30,6 +33,17 @@ imgBrake_t Brake = {
     .Scan_H = 55,
     .P_Limit = 10,
     .StopDelay = 100,
+};
+
+/* 初始化障碍检测结构体 */
+imgBarrier_t Barrier =
+{
+    .ON = true,
+    .Flag = false,
+    .Scan_H = 52,
+    .Delay = 500,
+    .Offset_Goal_L = 4.5,
+    .Offset_Goal_R = -5.5,
 };
 
 static void myline1(int x1, int y1, int x2, int y2)
@@ -235,7 +249,7 @@ void img_find_middle(void)
 //        if (mline_len > 55)
 //            ave += ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
 //        else
-        ave += (middle[h] - BLACK_CENTER) * normpdf50[h];
+        ave += (middle[h] - BLACK_CENTER) * normpdf45[h];
     }
 
     turn = ave;
@@ -702,9 +716,7 @@ void img_brake_scan(void)
             for (w = 0; w < (CAMERA_W - 1); w++)
             {
                 if (Pixmap[Brake.Scan_H][w] != Pixmap[Brake.Scan_H][w + 1])
-                {
                     p_count++;
-                }
             }
             if (p_count > Brake.P_Limit)
             {
@@ -730,41 +742,24 @@ void img_brake_scan(void)
     OLED_Printf(80, 7, "BC:%6d", Brake.Count);
 }
 
-
-
-imgBarrier_t Barrier =
-{
-    .ON = true,
-    .Flag = false,
-    .Scan_H = 53,
-    .Left_barrier = false,
-    .Right_barrier = false,
-    .Offset = 0,
-    .Delay = 3000,
-    .count = 0,
-};
-
-#include "fsl_debug_console.h"
 void img_barrier_scan(void)
 {
-    int w,h, p_count = 0;
-    uint8_t width[60] = { 0 };
+    int w, p_count = 0;
     static TickType_t LastTime;
     uint8_t left_lenth = 0;
     uint8_t right_lenth = 0;
 
-
     if (Barrier.ON == true)
     {
-        if (Barrier.Offset == 7 ||Barrier.Offset == -7)
+        if (Barrier.Flag == true)
         {
             /* FLAG已经设置，开始计时 */
             if (xTaskGetTickCount() > LastTime + Barrier.Delay)
             {
                 /* 时间条件满足，取消标志 */
+                Barrier.Flag = false;
+                /* 取消偏移量 */
                 Barrier.Offset = 0;
-                Barrier.Left_barrier = false;
-                Barrier.Right_barrier = false;
             }
         }
         else
@@ -772,57 +767,51 @@ void img_barrier_scan(void)
             for (w = 0; w < (CAMERA_W - 1); w++)
             {
                 if (Pixmap[Barrier.Scan_H][w] != Pixmap[Barrier.Scan_H][w + 1])
-                {
                     p_count++;
-                }
             }
             if (p_count == 4)
             {
-                /* 满足条件，判断左右 */
-//                Barrier.Flag = true;
-//                LastTime = xTaskGetTickCount();
+                /* 判断障碍左右 */
                 for (w = 39; w >= 0; w--)
                 {
-                    left_lenth = w;
+                    left_lenth++;
                     if (Pixmap[Barrier.Scan_H][w] == 0)
                         break;
                 }
-                for (w = 40; w <= 79; w++)
+                for (w = 40; w < CAMERA_W; w++)
                 {
-                    right_lenth = w;
+                    right_lenth++;
                     if (Pixmap[Barrier.Scan_H][w] == 0)
                         break;
                 }
 
-                if ((40 - left_lenth) < (right_lenth - 40))
+                /* 左右等长，迷の条件，丑拒 */
+                if (right_lenth == left_lenth)
+                    return;
+
+                /* 满足条件，设置FLAG */
+                Barrier.Flag = true;
+                LastTime = xTaskGetTickCount();
+
+                if (right_lenth > left_lenth)
                 {
-                    Barrier.Left_barrier = true;
+                    /* 右边白线比左边长，障碍在左 */
+                    Barrier.Dir = LEFT;
+                    Barrier.Offset = Barrier.Offset_Goal_L;
+                    PRINTF("--> FIND LEFT BARRIER!\r\n");
                 }
-
-                if ((40 - left_lenth) > (right_lenth - 40))
+                else
                 {
-                    Barrier.Right_barrier = true;
-                }
-
-                if (Barrier.Left_barrier == true && Barrier.Right_barrier == false)
-                {
-                    Barrier.Offset = 7;
-                    LastTime = xTaskGetTickCount();
-                    PRINTF("FIND LEFT BARRIER");
-
-                }
-
-                if (Barrier.Left_barrier == false && Barrier.Right_barrier == true)
-                {
-                    Barrier.Offset = -7;
-                    LastTime = xTaskGetTickCount();
-                    PRINTF("FIND RIGHT BARRIER");
-
+                    /* 障碍在右 */
+                    Barrier.Dir = RIGHT;
+                    Barrier.Offset = Barrier.Offset_Goal_R;
+                    PRINTF("--> FIND RIGHT BARRIER!\r\n");
                 }
             }
         }
     }
 }
+
 //void img_barrier_search(void)
 //{
 //    int8_t h, w;

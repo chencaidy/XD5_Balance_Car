@@ -25,13 +25,29 @@ typedef struct
 
 } imgBrake_t;
 
+typedef struct
+{
+    bool ON;            /* 障碍总开关 */
+    bool Flag;          /* 障碍检测标志 */
+
+    uint32_t Delay;     /* 中线偏移时长（毫秒） */
+    uint32_t Scan_H;    /* 在哪行扫描障碍 */
+
+    float Offset_Goal_L;/* 中线预期左偏量 */
+    float Offset_Goal_R;/* 中线预期右偏量 */
+    float Offset;       /* 满足条件后，中线偏移量 */
+
+    uint8_t Dir;        /* 圆环方向 */
+
+} imgBarrier_t;
+
 void img_find_middle(void);
 void img_cross_search(void);
 void img_circle_left_search(void);
 void img_circle_right_search(void);
 void img_smalls_search(void);
-void img_barrier_search(void);
 
 void img_brake_scan(void);
+void img_barrier_scan(void);
 
 #endif /* IMGPROCESS_H_ */
