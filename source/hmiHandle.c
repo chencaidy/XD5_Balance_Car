@@ -28,6 +28,28 @@ static int8_t buttonHandle(uint8_t *buf)
     
     switch (thisPage)
     {
+        case CONTROL:
+        {
+            if (17 == btn->buttonID)    //一档按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Gear 1 Press!\r\n");
+                Speed.Goal = 4250.f;
+                Brake.Count = 0;
+            }
+            if (18 == btn->buttonID)    //二档按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Gear 2 Press!\r\n");
+            }
+            if (19 == btn->buttonID)    //三档按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Gear 3 Press!\r\n");
+            }
+            break;
+        }
+
         case SENSOR:
         {
             if (12 == btn->buttonID)    //校准按钮
@@ -38,6 +60,7 @@ static int8_t buttonHandle(uint8_t *buf)
                     IMU_SetBias(imuBias);
                 }
             }
+            break;
         }
 
         case CAMERA:
@@ -132,6 +155,38 @@ static int8_t doubleHandle(uint8_t *buf)
 
     switch (thisPage)
     {
+        case CONTROL:
+        {
+            if (10 == silder->widgetID)     //十字按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Cross Value is %d\r\n", silder->val);
+            }
+            if (11 == silder->widgetID)     //圆环按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Circle Value is %d\r\n", silder->val);
+            }
+            if (12 == silder->widgetID)     //障碍按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Block Value is %d\r\n", silder->val);
+                Barrier.ON = silder->val;
+            }
+            if (13 == silder->widgetID)     //坡道按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Slope Value is %d\r\n", silder->val);
+            }
+            if (14 == silder->widgetID)     //刹车按钮
+            {
+                //TODO
+                PRINTF("HMI Message: Break Value is %d\r\n", silder->val);
+                Brake.ON = silder->val;
+            }
+            break;
+        }
+
         case CAMERA:
         {
             if (16 == silder->widgetID)     //自动曝光按钮
@@ -140,6 +195,47 @@ static int8_t doubleHandle(uint8_t *buf)
                 camera.AutoAWB = silder->val;
             if (18 == silder->widgetID)     //自动增益按钮
                 camera.AutoAGC = silder->val;
+            break;
+        }
+
+        case PID:
+        {
+            if (3 == silder->widgetID)     //直立环按钮
+                Angle.ON = silder->val;
+            if (4 == silder->widgetID)     //速度环按钮
+                Speed.ON = silder->val;
+            if (5 == silder->widgetID)     //角度环按钮
+                Direction.ON = silder->val;
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * @brief  用户特殊格式处理事件
+ * @retval -1,失败 0,成功
+ */
+static int8_t userHandle(uint8_t *buf)
+{
+    hmiPack_t *packge = NULL;
+
+    if (NULL == buf)
+        return -1;
+    packge = (hmiPack_t *) buf;
+
+    switch (packge->cmd)
+    {
+        case IMG_CIRCLE_RTN:
+        {
+            //TODO
+            PRINTF("HMI Message: Get IMG_CIRCLE_RTN\r\n");
             break;
         }
 
@@ -207,9 +303,10 @@ int8_t HMI_RxMsgHandle(uint8_t *buf)
             doubleHandle(packge->data);
             break;
         }
-
+        /* 不满足标准格式，进入用户特殊格式处理事件 */
         default:
         {
+            userHandle(buf);
             break;
         }
     }
@@ -225,11 +322,22 @@ void HMI_TxMsgHandle(void)
 {
     switch(thisPage)
     {
+        case CONTROL:
+        {
+//            HMI_InsertData("bt0.val=%d", );
+//            HMI_InsertData("bt1.val=%d", );
+            HMI_InsertData("bt2.val=%d", Barrier.ON);
+//            HMI_InsertData("bt3.val=%d", );
+            HMI_InsertData("bt4.val=%d", Brake.ON);
+            break;
+        }
+
         case SENSOR:
         {
             HMI_InsertData("n0.val=%d", (int) (sensor.Pitch * 100.f));
             HMI_InsertData("n1.val=%d", (int) (sensor.GyroX * 100.f));
             HMI_InsertData("n2.val=%d", (int) (sensor.GyroZ * 100.f));
+            break;
         }
 
         case CAMERA:
@@ -264,6 +372,14 @@ void HMI_TxMsgHandle(void)
             HMI_InsertData("n7.val=%d", rcInfo.ch[7]);
             HMI_InsertData("n8.val=%d", rcInfo.ch[8]);
             HMI_InsertData("n9.val=%d", rcInfo.ch[9]);
+            break;
+        }
+
+        case PID:
+        {
+            HMI_InsertData("bt0.val=%d", Angle.ON);
+            HMI_InsertData("bt1.val=%d", Speed.ON);
+            HMI_InsertData("bt2.val=%d", Direction.ON);
             break;
         }
 
