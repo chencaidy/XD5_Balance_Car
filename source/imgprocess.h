@@ -78,7 +78,7 @@ void img_smalls_search(void);
 
 void img_brake_scan(void);
 void img_barrier_scan(void);
-void img_circle_scan(int debug);
+void img_circle_scan(void);
 void img_cross_scan(void);
 
 #endif /* IMGPROCESS_H_ */
