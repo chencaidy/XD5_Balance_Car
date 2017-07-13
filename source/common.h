@@ -33,6 +33,7 @@ extern carFailsafe_t Failsafe;      //PID控制器 - 失控保护参数
 /* 图像参数全局传递 */
 extern imgBrake_t Brake;
 extern imgBarrier_t Barrier;
+extern imgCircle_t Circle;
 
 /* 配置信息全局传递 */
 extern camConf_t camera;

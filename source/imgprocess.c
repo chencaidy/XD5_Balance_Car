@@ -8,10 +8,11 @@
 /* 预编译部分图像位置，节省CPU时间 */
 #define CAMERA_W        (80U)
 #define CAMERA_H        (60U)
+#define CAMERA_WT       (CAMERA_W-1)
+#define CAMERA_HT       (CAMERA_H-1)
 #define CAMERA_ML       (CAMERA_W/2-1)
 #define CAMERA_MR       (CAMERA_W/2)
-#define CAMERA_MT       (CAMERA_W-1)
-#define CAMERA_HT       (CAMERA_H-1)
+
 /* 图像黑白定义 */
 #define BLACK           (0U)
 #define WRITE           (255U)
@@ -43,7 +44,17 @@ imgBarrier_t Barrier =
     .Scan_H = 52,
     .Delay = 500,
     .Offset_Goal_L = 4.5,
-    .Offset_Goal_R = -5.5,
+    .Offset_Goal_R = -6.5,
+};
+
+/* 初始化圆环检测结构体 */
+imgCircle_t Circle = {
+    .ON = true,
+    .Flag = false,
+    .Delay = 1500,
+    .Count = 0,
+    .Dir = {0},
+    .Limit = 15
 };
 
 static void myline1(int x1, int y1, int x2, int y2)
@@ -162,7 +173,7 @@ float normpdf50[60] =
        0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108,
 };                                                              //系数为50
 
-float *normpdf = normpdf45;
+float *normpdf = normpdf30;
 float linspace[60] =
 {2.00 ,1.98 ,1.97 ,1.95 ,1.93 ,1.92 ,1.90 ,1.88 ,1.86 ,1.85 ,1.83 ,1.81 ,1.80 ,1.78,
         1.76 ,1.75 ,1.73 ,1.71 ,1.69 ,1.68 ,1.66 ,1.64 ,1.63 ,1.61 ,1.59 ,1.58 ,1.56,
@@ -249,7 +260,7 @@ void img_find_middle(void)
 //        if (mline_len > 55)
 //            ave += ((middle_line[h] - 39.5) * linspace[h]) * normpdf2[h];
 //        else
-        ave += (middle[h] - BLACK_CENTER) * normpdf45[h];
+        ave += (middle[h] - BLACK_CENTER) * normpdf[h];
     }
 
     turn = ave;
@@ -529,7 +540,7 @@ void img_circle_left_search(void)
         }
         else
         {
-            normpdf = normpdf50;
+            normpdf = normpdf45;
         }
     }
     new_circle_rate = (int8_t)(circle_rate * 10);
@@ -725,6 +736,8 @@ void img_brake_scan(void)
                 LastTime = xTaskGetTickCount();
                 /* 检测次数 */
                 Brake.Count++;
+
+                PRINTF("--> FIND BRAKE LINE!\r\n");
             }
         }
 
@@ -738,8 +751,6 @@ void img_brake_scan(void)
             Brake.Count = 0;
         }
     }
-
-    OLED_Printf(80, 7, "BC:%6d", Brake.Count);
 }
 
 void img_barrier_scan(void)
@@ -812,70 +823,134 @@ void img_barrier_scan(void)
     }
 }
 
-//void img_barrier_search(void)
-//{
-//    int8_t h, w;
-//
-//    uint16_t left_barrier_count = 0;
-//    uint16_t right_barrier_count = 0;
-//    uint8_t barrier_count = 0;
-//    uint8_t mline_len = 0;
-//    uint8_t width[60] = { 0 };
-//    static TickType_t LastTime;
-//
-//    if (Barrier.offset == 5 ||Barrier.offset == -5)
-//    {
-//        if (xTaskGetTickCount() > LastTime + Barrier.Delay)
-//        {
-//            Barrier.offset = 0;
-//            Barrier.right_barrier = false;
-//            Barrier.left_barrier = false;
-//        }
-//    }
-//    else
-//    {
-//
-//        if (Barrier.left_barrier == false && Barrier.right_barrier == false)
-//        {
-//            for (h = 59; h > 0; h--)
-//            {
-//                mline_len = h;
-//                if (Pixmap[h][40] == BLACK)
-//                    break;
-//            }
-//            mline_len = 59 - h;                         //判断40行视距长度
-//
-//            if (mline_len > 40)
-//            {
-//                for (h = 59; h >= 30; h--)
-//                {
-//                    for (w = 39; w >= 15; w--)
-//                    {
-//                        if (Pixmap[h][w] == 0)
-//                            left_barrier_count = left_barrier_count + 1;
-//                    }
-//                    for (w = 41; w <= 65; w++)
-//                    {
-//                        if (Pixmap[h][w] == 0)
-//                            right_barrier_count = right_barrier_count + 1;
-//                    }
-//                }
-//                Barrier.left_barrier_rate = left_barrier_count / 750.f;
-//                Barrier.right_barrier_rate = right_barrier_count / 750.f; //计算30*50这个大区间内的黑点占有率
-//
-//                if (Barrier.left_barrier_rate > 0.2)
-//                {
-//
-//                }
-//
-//                if (Barrier.right_barrier_rate > 0.2)
-//                {
-//
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    OLED_Printf(80, 6, "S3:%6d", Barrier.count);
-//}
+void img_circle_scan(int debug)
+{
+    int h, w;
+    int left = 0, right = 0, middle = 0;
+    uint8_t height[CAMERA_W] = { 0 };
+    static TickType_t LastTime;
+
+    if (Circle.ON == true)
+    {
+        if (Circle.Flag == true)
+        {
+            /* FLAG已经设置，开始计时 */
+            if (xTaskGetTickCount() > LastTime + Circle.Delay)
+            {
+                /* 时间条件满足，取消标志 */
+                Circle.Flag = false;
+            }
+            if(Circle.Dir[Circle.Count-1] == LEFT)
+            {
+                img_circle_left_search();
+            }
+            else
+            {
+                img_circle_right_search();
+            }
+        }
+        else
+        {
+            /* 获取白线长度 */
+            for (w = 0; w <= 79; w++)
+            {
+                for (h = 59; h >= 0; h--)
+                {
+                    if (Pixmap[h][w] == BLACK)
+                        break;
+                    else
+                        height[w] = 60 - h;
+                }
+            }
+            /* 搜寻左跳变 */
+            for (w = 0; w <= 38; w++)
+            {
+                if (height[w + 1] - height[w] > Circle.Limit)
+                {
+                    left = height[w + 1];
+                    break;
+                }
+                else
+                {
+                    left = -1;
+                }
+            }
+            /* 搜寻右跳变 */
+            for (w = 79; w >= 41; w--)
+            {
+                if (height[w - 1] - height[w] > Circle.Limit)
+                {
+                    right = height[w - 1];
+                    break;
+                }
+                else
+                {
+                    right = -1;
+                }
+            }
+            /* 计算中线 */
+            middle = (height[39] + height[40]) / 2;
+
+            /* 条件判断（高-低-高） */
+            if (middle < left && middle < right)
+            {
+                /* 满足条件，设置FLAG */
+                Circle.Flag = true;
+                LastTime = xTaskGetTickCount();
+                /* 检测次数 */
+                Circle.Count++;
+            }
+        }
+
+        OLED_Printf(80, 7, "CC:%6d", Circle.Count);
+    }
+}
+
+imgCross_t Cross={
+    .ON = true,
+    .Flag = false,
+    .Delay = 500,
+    .Count = 0,
+    .Search_H = 40,
+    .Search_W = 40,
+};
+
+void img_cross_scan()
+{
+    static TickType_t LastTime;
+    uint32_t white_count = 0 ;
+    int h,w;
+
+    if(Cross.ON == true)
+    {
+        if(Cross.Flag == true)
+        {
+            if (xTaskGetTickCount() > LastTime +Circle.Delay)
+            {
+                Cross.Flag = false;
+            }
+            img_cross_search();
+        }
+        else
+        {
+            for(w = 0; w<= 79; w++)
+            {
+                if(Pixmap[Cross.Search_H][w] == 0xFF)
+                    white_count ++;
+            }
+            for(h =20;  h<= 59; h++)
+            {
+                if(Pixmap[h][Cross.Search_W] == 0xFF)
+                    white_count ++;
+            }
+
+            if(white_count == 120)
+            {
+                Cross.Flag  = true;
+                Cross.Count++;
+                LastTime = xTaskGetTickCount();
+            }
+        }
+        OLED_Printf(80, 6, "SS:%6d",Cross.Count);
+    }
+}
