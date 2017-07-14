@@ -47,8 +47,6 @@ typedef enum
     SILDER_RTN  = 0xA0,     //滑块事件
     DOUBLE_RTN  = 0xA1,     //双态按钮事件
 
-    IMG_CIRCLE_RTN = 0xB1,  //圆环转向控制专用事件
-
 } cmdBit_e;
 
 /* 页面ID枚举 */

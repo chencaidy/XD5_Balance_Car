@@ -30,19 +30,27 @@ static int8_t buttonHandle(uint8_t *buf)
     {
         case CONTROL:
         {
-            if (17 == btn->buttonID)    //一档按钮
+            if (16 == btn->buttonID)    //一档按钮
             {
                 //TODO
-                PRINTF("HMI Message: Gear 1 Press!\r\n");
+//                img_start_signal();
+                Speed.PWM_Integral = 5.f;
                 Speed.Goal = 4250.f;
                 Brake.Count = 0;
+                Circle.Count = 0;
+                PRINTF("HMI Message: Gear 1 Press!\r\n");
             }
-            if (18 == btn->buttonID)    //二档按钮
+            if (17 == btn->buttonID)    //二档按钮
             {
                 //TODO
+//                img_start_signal();
+                Speed.Goal = 5070.f;
+                Speed.PWM_Integral = 5.f;
+                Brake.Count = 0;
+                Circle.Count = 0;
                 PRINTF("HMI Message: Gear 2 Press!\r\n");
             }
-            if (19 == btn->buttonID)    //三档按钮
+            if (18 == btn->buttonID)    //三档按钮
             {
                 //TODO
                 PRINTF("HMI Message: Gear 3 Press!\r\n");
@@ -157,33 +165,46 @@ static int8_t doubleHandle(uint8_t *buf)
     {
         case CONTROL:
         {
-            if (10 == silder->widgetID)     //十字按钮
+            if (9 == silder->widgetID)     //十字按钮
             {
                 //TODO
                 PRINTF("HMI Message: Cross Value is %d\r\n", silder->val);
             }
-            if (11 == silder->widgetID)     //圆环按钮
+            if (10 == silder->widgetID)     //小S按钮
             {
                 //TODO
                 PRINTF("HMI Message: Circle Value is %d\r\n", silder->val);
             }
-            if (12 == silder->widgetID)     //障碍按钮
+            if (11 == silder->widgetID)     //坡道按钮
             {
                 //TODO
                 PRINTF("HMI Message: Block Value is %d\r\n", silder->val);
-                Barrier.ON = silder->val;
             }
-            if (13 == silder->widgetID)     //坡道按钮
+            if (12 == silder->widgetID)     //刹车按钮
             {
-                //TODO
                 PRINTF("HMI Message: Slope Value is %d\r\n", silder->val);
-            }
-            if (14 == silder->widgetID)     //刹车按钮
-            {
-                //TODO
-                PRINTF("HMI Message: Break Value is %d\r\n", silder->val);
                 Brake.ON = silder->val;
             }
+            if (13 == silder->widgetID)     //失控保护按钮
+            {
+                PRINTF("HMI Message: Break Value is %d\r\n", silder->val);
+                Failsafe.ON = silder->val;
+            }
+
+            /* 圆环方向 */
+            if (3 == silder->widgetID)
+                Circle.Dir[0] = silder->val;
+            if (4 == silder->widgetID)
+                Circle.Dir[1] = silder->val;
+            if (5 == silder->widgetID)
+                Circle.Dir[2] = silder->val;
+            if (6 == silder->widgetID)
+                Circle.Dir[3] = silder->val;
+            if (7 == silder->widgetID)
+                Circle.Dir[4] = silder->val;
+            if (20 == silder->widgetID)
+                Circle.Dir[5] = silder->val;
+
             break;
         }
 
@@ -232,12 +253,7 @@ static int8_t userHandle(uint8_t *buf)
 
     switch (packge->cmd)
     {
-        case IMG_CIRCLE_RTN:
-        {
-            //TODO
-            PRINTF("HMI Message: Get IMG_CIRCLE_RTN\r\n");
-            break;
-        }
+        //TODO:用户自定义
 
         default:
         {
@@ -326,9 +342,15 @@ void HMI_TxMsgHandle(void)
         {
 //            HMI_InsertData("bt0.val=%d", );
 //            HMI_InsertData("bt1.val=%d", );
-            HMI_InsertData("bt2.val=%d", Barrier.ON);
-//            HMI_InsertData("bt3.val=%d", );
-            HMI_InsertData("bt4.val=%d", Brake.ON);
+//            HMI_InsertData("bt2.val=%d", );
+            HMI_InsertData("bt3.val=%d", Brake.ON);
+            HMI_InsertData("bt4.val=%d", Failsafe.ON);
+            HMI_InsertData("bt_c1.val=%d", Circle.Dir[0]);
+            HMI_InsertData("bt_c2.val=%d", Circle.Dir[1]);
+            HMI_InsertData("bt_c3.val=%d", Circle.Dir[2]);
+            HMI_InsertData("bt_c4.val=%d", Circle.Dir[3]);
+            HMI_InsertData("bt_c5.val=%d", Circle.Dir[4]);
+            HMI_InsertData("bt_c6.val=%d", Circle.Dir[5]);
             break;
         }
 
