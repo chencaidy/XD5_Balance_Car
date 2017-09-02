@@ -33,27 +33,95 @@ static int8_t buttonHandle(uint8_t *buf)
             if (16 == btn->buttonID)    //一档按钮
             {
                 //TODO
-//                img_start_signal();
-                Speed.PWM_Integral = 5.f;
-                Speed.Goal = 4250.f;
                 Brake.Count = 0;
+                Brake.StopDelay = 300;
+
+                Barrier.Delay = 1000;
+
                 Circle.Count = 0;
+                Cross.Count = 0;
+                Process.normpdf = normpdf45;
+
+                img_start_signal();
+                Speed.I_Error_Start = 1000;
+                Speed.I_Limit_PWM_max = 20;
+                Speed.I_Limit_PWM_min = -20;
+                Speed.PWM_Integral = 20.f;
+                Speed.Goal = 4250.f;
+
+                Direction.P = 0.98f;
+                Direction.D = 0.058f;
+
                 PRINTF("HMI Message: Gear 1 Press!\r\n");
             }
             if (17 == btn->buttonID)    //二档按钮
             {
                 //TODO
-//                img_start_signal();
-                Speed.Goal = 5070.f;
-                Speed.PWM_Integral = 5.f;
                 Brake.Count = 0;
+                Brake.StopDelay = 200;
+
                 Circle.Count = 0;
+                Cross.Count = 0;
+                Process.normpdf = normpdf43;
+
+                img_start_signal();
+                Speed.Goal = 4650.f;
+                Speed.I_Error_Start = 1000;
+                Speed.I_Limit_PWM_max = 10;
+                Speed.I_Limit_PWM_min = -10;
+                Speed.PWM_Integral = 10.f;
+
+                Direction.P = 0.98f;
+                Direction.D = 0.058f;
+
                 PRINTF("HMI Message: Gear 2 Press!\r\n");
             }
             if (18 == btn->buttonID)    //三档按钮
             {
                 //TODO
+                Brake.Count = 0;
+                Brake.StopDelay = 200;
+
+                Circle.Count = 0;
+                Cross.Count = 0;
+                Process.normpdf = normpdf40;
+                Process.Delay = 2000;
+
+                img_start_signal();
+                Speed.Goal = 5070.f;
+                Speed.I_Error_Start = 500;
+                Speed.I_Limit_PWM_max = 5;
+                Speed.I_Limit_PWM_min = -5;
+                Speed.PWM_Integral = 5.f;
+
+                Direction.P = 0.98f;
+                Direction.D = 0.058f;
+
                 PRINTF("HMI Message: Gear 3 Press!\r\n");
+            }
+
+            if (21 == btn->buttonID)    //爆档按钮
+            {
+                //TODO
+                Brake.Count = 0;
+                Brake.StopDelay = 200;
+
+                Circle.Count = 0;
+                Cross.Count = 0;
+                Process.normpdf = normpdf35;
+                Process.Delay = 2000;
+
+                img_start_signal();
+                Speed.Goal = 5350.f;
+                Speed.I_Error_Start = 500;
+                Speed.I_Limit_PWM_max = 5;
+                Speed.I_Limit_PWM_min = -5;
+                Speed.PWM_Integral = 5.f;
+
+                Direction.P = 0.98f;
+                Direction.D = 0.058f;
+
+                PRINTF("HMI Message: Gear Boom Press!\r\n");
             }
             break;
         }
@@ -105,6 +173,31 @@ static int8_t buttonHandle(uint8_t *buf)
                 Blackbox_Reset();
             if (9 == btn->buttonID)     //格式化按钮
                 Blackbox_Format();
+            break;
+        }
+
+        case PID:
+        {
+            if (6 == btn->buttonID)     //500ms障碍按钮
+                Barrier.Delay = 500;
+            if (8 == btn->buttonID)     //1000ms障碍按钮
+                Barrier.Delay = 1000;
+            if (9 == btn->buttonID)     //1500ms障碍按钮
+                Barrier.Delay = 1500;
+            if (11 == btn->buttonID)     //+100ms障碍按钮
+                Barrier.Delay += 100;
+            if (12 == btn->buttonID)     //-100ms障碍按钮
+                Barrier.Delay -= 100;
+
+            if (14 == btn->buttonID)     //+0.1L障碍按钮
+                Barrier.Offset_Goal_L += 0.1;
+            if (15 == btn->buttonID)     //-0.1L障碍按钮
+                Barrier.Offset_Goal_L -= 0.1;
+            if (17 == btn->buttonID)     //+0.1R障碍按钮
+                Barrier.Offset_Goal_R += 0.1;
+            if (18 == btn->buttonID)     //-0.1R障碍按钮
+                Barrier.Offset_Goal_R -= 0.1;
+
             break;
         }
 
@@ -169,6 +262,7 @@ static int8_t doubleHandle(uint8_t *buf)
             {
                 //TODO
                 PRINTF("HMI Message: Cross Value is %d\r\n", silder->val);
+                Cross.ON = silder->val;
             }
             if (10 == silder->widgetID)     //小S按钮
             {
@@ -179,6 +273,7 @@ static int8_t doubleHandle(uint8_t *buf)
             {
                 //TODO
                 PRINTF("HMI Message: Block Value is %d\r\n", silder->val);
+                Slope.ON = silder->val;
             }
             if (12 == silder->widgetID)     //刹车按钮
             {
@@ -340,7 +435,7 @@ void HMI_TxMsgHandle(void)
     {
         case CONTROL:
         {
-//            HMI_InsertData("bt0.val=%d", );
+            HMI_InsertData("bt0.val=%d", Cross.ON);
 //            HMI_InsertData("bt1.val=%d", );
 //            HMI_InsertData("bt2.val=%d", );
             HMI_InsertData("bt3.val=%d", Brake.ON);
@@ -402,6 +497,10 @@ void HMI_TxMsgHandle(void)
             HMI_InsertData("bt0.val=%d", Angle.ON);
             HMI_InsertData("bt1.val=%d", Speed.ON);
             HMI_InsertData("bt2.val=%d", Direction.ON);
+            HMI_InsertData("t_ba.txt=\"%d\"", Barrier.Delay);
+            HMI_InsertData("t_of.txt=\"L%d|R%d\"",
+                    (int) (Barrier.Offset_Goal_L * 10),
+                    (int) (Barrier.Offset_Goal_R * 10));
             break;
         }
 

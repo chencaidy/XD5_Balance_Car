@@ -13,6 +13,18 @@
 
 typedef struct
 {
+    bool Flag;          /*设置标志位*/
+
+    uint32_t LastTime;  /*起跑系统时间*/
+    uint32_t Delay;     /*设置延时时间*/
+
+    float Turn;         /*设置转向值*/
+    float *normpdf;     /*设置视角权重*/
+
+} imgProcess_t;
+
+typedef struct
+{
     bool ON;            /* 刹车总开关 */
     bool Flag;          /* 刹车线检测标志 */
 
@@ -68,17 +80,33 @@ typedef struct
     uint32_t Search_W;
     /*设置十字列数*/
     uint32_t Search_H;
-}imgCross_t;
+} imgCross_t;
+
+typedef struct
+{
+    /*设置坡道总开关*/
+    bool ON;
+    /*设置坡道标志位*/
+    bool Flag;
+    /*设置坡道时间*/
+    uint32_t Delay;
+} imgSlope_t;
+
 
 void img_find_middle(void);
+void img_find_middle_start(void);
 void img_cross_search(void);
-void img_circle_left_search(void);
-void img_circle_right_search(void);
+void img_circle_search(void);
+//void img_circle_right_search(void);
 void img_smalls_search(void);
 
 void img_brake_scan(void);
 void img_barrier_scan(void);
 void img_circle_scan(void);
 void img_cross_scan(void);
+void img_Slope_scan(void);
+
+void img_start_timer(void);
+void img_start_signal(void);
 
 #endif /* IMGPROCESS_H_ */

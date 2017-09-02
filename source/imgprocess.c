@@ -22,8 +22,129 @@
 /* 理想中线值 */
 #define BLACK_CENTER       (39.5F)
 
-extern float turn;
 extern uint8_t Pixmap[60][80];
+
+float normpdf35[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.3000, 0.6000,     //31-35
+        0.0000, 0.1000, 0.0000, 0.0000, 0.0000,     //36-40
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //41-45
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //46-50
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为35
+
+float normpdf37[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.0000, 0.3000,     //31-35
+        0.6000, 0.1000, 0.0000, 0.0000, 0.0000,     //36-40
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //41-45
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //46-50
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为35
+
+float normpdf40[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //31-35
+        0.0000, 0.3000, 0.6000, 0.0000, 0.0000,     //36-40
+        0.0000, 0.1000, 0.0000, 0.0000, 0.0000,     //41-45
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //46-50
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为40
+
+float normpdf43[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //31-35
+        0.0000, 0.0000, 0.2000, 0.0000, 0.0000,     //36-40
+        0.0000, 0.0000, 0.6000, 0.0000, 0.0000,     //41-45
+        0.0000, 0.0000, 0.2000, 0.0000, 0.0000,     //46-50
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为45
+
+float normpdf45[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //31-35
+        0.0000, 0.0000, 0.0000, 0.0000, 0.2000,     //36-40
+        0.0000, 0.0000, 0.0000, 0.0000, 0.6000,     //41-45
+        0.0000, 0.0000, 0.0000, 0.0000, 0.2000,     //46-50
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为45
+
+float normpdf47[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //31-35
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //36-40
+        0.0000, 0.2000, 0.0000, 0.0000, 0.0000,     //41-45
+        0.0000, 0.6000, 0.0000, 0.0000, 0.0000,     //46-50
+        0.0000, 0.2000, 0.0000, 0.0000, 0.0000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为47
+
+float normpdf50[60] = {
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //31-35
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,     //36-40
+        0.0000, 0.0000, 0.0000, 0.0000, 0.2000,     //41-45
+        0.0000, 0.0000, 0.0000, 0.0000, 0.6000,     //46-50
+        0.0000, 0.0000, 0.0000, 0.0000, 0.2000,     //51-55
+        0.0000, 0.0000, 0.0000, 0.0000, 0.0000      //56-60
+};      //系数为50
+
+
+
+/* 起跑初始化检测结构体 */
+imgProcess_t Process = {
+    .Flag = true,
+    .Delay = 1500,
+    .Turn = 0,
+    .normpdf = normpdf45,
+};
 
 /* 初始化刹车线检测结构体 */
 imgBrake_t Brake = {
@@ -43,8 +164,8 @@ imgBarrier_t Barrier =
     .Flag = false,
     .Scan_H = 52,
     .Delay = 500,
-    .Offset_Goal_L = 4.5,
-    .Offset_Goal_R = -6.5,
+    .Offset_Goal_L = 5.5,
+    .Offset_Goal_R = -5.5,
 };
 
 /* 初始化圆环检测结构体 */
@@ -54,62 +175,26 @@ imgCircle_t Circle = {
     .Delay = 1500,
     .Count = 0,
     .Dir = {0},
-    .Limit = 15
+    .Limit = 15,
 };
 
-float normpdf15[60] = {
-        0.0016, 0.0027, 0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388,
-        0.0484, 0.0579, 0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666,
-        0.0579, 0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108, 0.0071, 0.0045,
-        0.0027, 0.0016, 0.0009, 0.0005, 0.0002, 0.0001, 0.0001, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000,0.0000};          //系数为15
+/* 初始化十字检测结构体 */
+imgCross_t Cross={
+    .ON = true,
+    .Flag = false,
+    .Delay = 500,
+    .Count = 0,
+    .Search_H = 40,
+    .Search_W = 40,
+};
 
-float normpdf30[60] = {
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0002, 0.0005, 0.0015, 0.0038, 0.0087, 0.0180, 0.0332, 0.0547,
-        0.0807, 0.1065, 0.1258, 0.1330, 0.1258, 0.1065, 0.0807, 0.0547, 0.0332,
-        0.0180, 0.0087, 0.0038, 0.0015, 0.0005, 0.0002, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000 };        //系数为30
+/* 初始化坡道检测结构体 */
+imgSlope_t Slope={
 
-float normpdf40[60]= {
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0001, 0.0001, 0.0002, 0.0005, 0.0009, 0.0016, 0.0027,
-        0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388, 0.0484, 0.0579,
-        0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666, 0.0579, 0.0484,
-        0.0388, 0.0299, 0.0222, 0.0158, 0.0108, 0.0071, 0.0045, 0.0027, 0.0016,
-        0.0009, 0.0005, 0.0002, 0.0001, 0.0001, 0.0000,};        //系数为40
-
-float normpdf45[60] = {
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0001, 0.0001,
-        0.0002, 0.0005, 0.0009, 0.0016, 0.0027, 0.0045, 0.0071, 0.0108, 0.0158,
-        0.0222, 0.0299, 0.0388, 0.0484, 0.0579, 0.0666, 0.0737, 0.0782, 0.0798,
-        0.0782, 0.0737, 0.0666, 0.0579, 0.0484, 0.0388, 0.0299, 0.0222, 0.0158,
-        0.0108, 0.0071, 0.0045, 0.0027, 0.0016, 0.0009};         //系数为45
-
-float normpdf50[60] = {
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
-        0.0000, 0.0000, 0.0000, 0.0001, 0.0001, 0.0002, 0.0005, 0.0009, 0.0016,
-        0.0027, 0.0045, 0.0071, 0.0108, 0.0158, 0.0222, 0.0299, 0.0388, 0.0484,
-        0.0579, 0.0666, 0.0737, 0.0782, 0.0798, 0.0782, 0.0737, 0.0666, 0.0579,
-        0.0484, 0.0388, 0.0299, 0.0222, 0.0158, 0.0108};         //系数为50
-
-float linspace[60] = {
-        2.00 ,1.98 ,1.97 ,1.95 ,1.93 ,1.92 ,1.90 ,1.88 ,1.86 ,1.85 ,1.83 ,1.81 ,1.80 ,1.78,
-        1.76 ,1.75 ,1.73 ,1.71 ,1.69 ,1.68 ,1.66 ,1.64 ,1.63 ,1.61 ,1.59 ,1.58 ,1.56,
-        1.54 ,1.53 ,1.51 ,1.49 ,1.47 ,1.46 ,1.44 ,1.42 ,1.41 ,1.39 ,1.37 ,1.36 ,1.34,
-        1.32 ,1.31 ,1.29 ,1.27 ,1.25 ,1.24 ,1.22 ,1.20 ,1.19 ,1.17 ,1.15 ,1.14 ,1.12,
-        1.10 ,1.08 ,1.07 ,1.05 ,1.03 ,1.02 ,1.00};                //一元修正函数
-
-float *normpdf = normpdf30;
+    .ON = false,
+    .Flag = false,
+    .Delay = 1000,
+};
 
 /**
   * @brief 画线算法（已测试）
@@ -262,12 +347,11 @@ void img_find_middle(void)
     /* 计算偏移量 */
     for (h = 0; h < CAMERA_H; h++)
     {
-        ave += (middle[h] - BLACK_CENTER) * normpdf[h];
+        ave += (middle[h] - BLACK_CENTER) * Process.normpdf[h];
     }
+    Process.Turn = ave;
 
-    turn = ave;
-
-    OLED_Printf(80, 2, "Turn:%4d", (int8_t) turn);
+    OLED_Printf(80, 2, "Turn:%4d", (int8_t) Process.Turn);
 }
 
 /**
@@ -306,11 +390,11 @@ void img_find_middle_start(void)
     /* 计算偏移量 */
     for (h = 0; h < CAMERA_H; h++)
     {
-        ave += (middle[h] - BLACK_CENTER) * normpdf[h];
+        ave += (middle[h] - BLACK_CENTER) * Process.normpdf[h];
     }
-    turn = ave;
+    Process.Turn = ave;
 
-    OLED_Printf(80, 2, "Turn:%4d", (int8_t) turn);
+    OLED_Printf(80, 2, "Turn:%4d", (int8_t) Process.Turn);
 }
 
 /**
@@ -509,7 +593,7 @@ void img_cross_search(void)
 /**
   * @brief 圆环左补线（已测试）
   */
-void img_circle_left_search(void)
+void img_circle_search(void)
 {
     int8_t h, w;
     uint16_t black_count = 0;
@@ -521,56 +605,126 @@ void img_circle_left_search(void)
     float circle_rate = 0;
     float small_rate = 0;
 
-    for(h = 25;h >= 20; h--)
+    if (Circle.Dir[Circle.Count - 1] == LEFT)
     {
-        for(w = 27; w <= 52; w++)
+        for (h = 25; h >= 20; h--)
         {
-            if(Pixmap[h][w] == 0)
-                small_black_count = small_black_count + 1;
+            for (w = 27; w <= 52; w++)
+            {
+                if (Pixmap[h][w] == 0)
+                    small_black_count = small_black_count + 1;
+            }
+        }
+        small_rate = small_black_count / 150.f;            //计算15*50这个大区间内的黑点占有率
+
+        if (small_rate > 0.5)
+        {
+
+            for (h = 25; h >= 10; h--)
+            {
+                for (w = 15; w <= 64; w++)
+                {
+                    if (Pixmap[h][w] == 0)
+                        black_count = black_count + 1;
+                }
+            }
+            circle_rate = black_count / 750.f;             //计算15*50这个大区间内的黑点占有率
+
+            for (h = 15; h <= 59; h++)                          //寻找全白行
+            {
+                for (w = 0; w <= 79; w++)
+                {
+                    if (Pixmap[h][w] == 0)
+                        break;
+                    if (w == 79)
+                        all_white_count = all_white_count + 1;
+                }
+            }
+
+            for (w = 0; w <= 79; w++)                          //记录每一列的黑线长度
+            {
+                for (h = 59; h >= 20; h--)
+                {
+                    black[w] = h;
+                    if (Pixmap[h][w] == 0)
+                        break;
+                }
+            }
+
+            if (all_white_count > 5 && circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环    左转
+            {
+
+                for (w = 79; w > 40; w--)
+                {
+                    if ((black[w] - black[w - 1]) > 5)
+                    {
+                        start_x = w;
+                        start_y = black[w];
+                        break;
+                    }
+                    else
+                    {
+                        start_x = 79;
+                        start_y = 59;
+                    }
+                }
+                end_x = 40;
+                end_y = black[40];
+            }
         }
     }
-    small_rate = small_black_count/150.f;                //计算15*50这个大区间内的黑点占有率
-
-    if (small_rate > 0.5)
+    else
     {
-
-        for (h = 25; h >= 10; h--)
+        for (h = 25; h >= 20; h--)
         {
-            for (w = 15; w <= 64; w++)
+            for (w = 27; w <= 52; w++)
             {
                 if (Pixmap[h][w] == 0)
-                    black_count = black_count + 1;
+                    small_black_count = small_black_count + 1;
             }
         }
-        circle_rate = black_count / 750.f;                //计算15*50这个大区间内的黑点占有率
+        small_rate = small_black_count / 150.f;            //计算15*50这个大区间内的黑点占有率
 
-        for (h = 15; h <= 59; h++)                          //寻找全白行
+        if (small_rate > 0.5)
         {
-            for (w = 0; w <= 79; w++)
+
+            for (h = 25; h >= 10; h--)
             {
-                if (Pixmap[h][w] == 0)
-                    break;
-                if (w == 79)
-                    all_white_count = all_white_count + 1;
+                for (w = 15; w <= 64; w++)
+                {
+                    if (Pixmap[h][w] == 0)
+                        black_count = black_count + 1;
+                }
+            }
+            circle_rate = black_count / 750.f;             //计算15*50这个大区间内的黑点占有率
+
+            for (h = 15; h <= 59; h++)                          //寻找全白行
+            {
+                for (w = 0; w <= 79; w++)
+                {
+                    if (Pixmap[h][w] == 0)
+                        break;
+                    if (w == 79)
+                        all_white_count = all_white_count + 1;
+                }
+            }
+
+            for (w = 0; w <= 79; w++)                          //记录每一列的黑线长度
+            {
+                for (h = 59; h >= 20; h--)
+                {
+                    black[w] = h;
+                    if (Pixmap[h][w] == 0)
+                        break;
+                }
             }
         }
 
-        for (w = 0; w <= 79; w++)                          //记录每一列的黑线长度
+        if (all_white_count > 5 && circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环         右转
         {
-            for (h = 59; h >= 20; h--)
+            for (w = 0; w < 40; w++)
             {
-                black[w] = h;
-                if (Pixmap[h][w] == 0)
-                    break;
-            }
-        }
-
-        if (all_white_count > 5 && circle_rate > 0.5)  //利用全白行和中心圆近似率来判断圆环    左转
-        {
-
-            for (w = 79; w > 40; w--)
-            {
-                if ((black[w] - black[w - 1]) > 5)
+                if ((black[w + 1] - black[w]) < -5)
                 {
                     start_x = w;
                     start_y = black[w];
@@ -578,19 +732,13 @@ void img_circle_left_search(void)
                 }
                 else
                 {
-                    start_x = 79;
+                    start_x = 0;
                     start_y = 59;
                 }
             }
             end_x = 40;
             end_y = black[40];
-
-            normpdf = normpdf40;
         }
-//        else
-//        {
-//            normpdf = normpdf45;
-//        }
     }
 
     myline1(start_x, start_y, end_x, end_y);
@@ -603,95 +751,25 @@ void img_circle_left_search(void)
 /**
   * @brief 圆环右补线（已测试）
   */
-void img_circle_right_search(void)
-{
-    int8_t h, w;
-    uint16_t black_count = 0;
-    uint16_t small_black_count = 0;
-    uint8_t black[80] = { 0 };
-    uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
-    uint8_t all_white_count = 0;
-//    uint8_t new_circle_rate= 0;
-    float circle_rate = 0;
-    float small_rate = 0;
-
-    for(h = 25;h >= 20; h--)
-    {
-        for(w = 27; w <= 52; w++)
-        {
-            if(Pixmap[h][w] == 0)
-                small_black_count = small_black_count + 1;
-        }
-    }
-    small_rate = small_black_count/150.f;                //计算15*50这个大区间内的黑点占有率
-
-    if (small_rate > 0.5)
-    {
-
-        for (h = 25; h >= 10; h--)
-        {
-            for (w = 15; w <= 64; w++)
-            {
-                if (Pixmap[h][w] == 0)
-                    black_count = black_count + 1;
-            }
-        }
-        circle_rate = black_count / 750.f;                //计算15*50这个大区间内的黑点占有率
-
-        for (h = 15; h <= 59; h++)                          //寻找全白行
-        {
-            for (w = 0; w <= 79; w++)
-            {
-                if (Pixmap[h][w] == 0)
-                    break;
-                if (w == 79)
-                    all_white_count = all_white_count + 1;
-            }
-        }
-
-        for (w = 0; w <= 79; w++)                          //记录每一列的黑线长度
-        {
-            for (h = 59; h >= 20; h--)
-            {
-                black[w] = h;
-                if (Pixmap[h][w] == 0)
-                    break;
-            }
-        }
-    }
-
-    if (all_white_count > 5 && circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环         右转
-    {
-        for (w = 0; w < 40; w++)
-        {
-            if ((black[w + 1] - black[w]) < -5)
-            {
-                start_x = w;
-                start_y = black[w];
-                break;
-            }
-            else
-            {
-                start_x = 0;
-                start_y = 59;
-            }
-        }
-        end_x = 40;
-        end_y = black[40];
-
-        normpdf = normpdf40;
-    }
-//    else
-//    {
-//        normpdf = normpdf45;
-//    }
-
-    myline1(start_x, start_y, end_x, end_y);
-//    new_circle_rate = (int8_t)(circle_rate * 10);
-
-//    OLED_Printf(80, 6, "S3:%6d", all_white_count);
-//    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
-}
+//void img_circle_right_search(void)
+//{
+//    int8_t h, w;
+//    uint16_t black_count = 0;
+//    uint16_t small_black_count = 0;
+//    uint8_t black[80] = { 0 };
+//    uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
+//    uint8_t all_white_count = 0;
+////    uint8_t new_circle_rate= 0;
+//    float circle_rate = 0;
+//    float small_rate = 0;
+//
+//
+//    myline1(start_x, start_y, end_x, end_y);
+////    new_circle_rate = (int8_t)(circle_rate * 10);
+//
+////    OLED_Printf(80, 6, "S3:%6d", all_white_count);
+////    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
+//}
 
 /**
   * @brief 小S检测
@@ -801,16 +879,25 @@ void img_brake_scan(void)
         }
 
         /* 进行条件判断 */
+        if (Brake.Count == 1)
+        {
+            Brake.Scan_H = 35;
+        }
+
         if (Brake.Count == 2)
         {
             /* 反正要停了，直接阻塞延时算了，当然是线程阻塞啦_(:3 」∠)_ */
             vTaskDelay(Brake.StopDelay);
+            Angle.ON = false;
+            Speed.ON = false;
+            Direction.ON = false;
             Speed.Goal = 0;
             /* 清除计数 */
             Brake.Count = 0;
+            Brake.Scan_H = 55;
         }
 
-        OLED_Printf(80, 6, "BC:%6d", Brake.Count);
+        OLED_Printf(80, 5, "BC:%6d", Brake.Count);
     }
 }
 
@@ -907,14 +994,7 @@ void img_circle_scan(void)
                 /* 时间条件满足，取消标志 */
                 Circle.Flag = false;
             }
-            if(Circle.Dir[Circle.Count-1] == LEFT)
-            {
-                img_circle_left_search();
-            }
-            else
-            {
-                img_circle_right_search();
-            }
+
         }
         else
         {
@@ -969,20 +1049,13 @@ void img_circle_scan(void)
             }
         }
 
-        OLED_Printf(80, 7, "CC:%6d", Circle.Count);
+        OLED_Printf(80, 7, "CIR:%5d", Circle.Count);
     }
 }
 
-imgCross_t Cross={
-    .ON = true,
-    .Flag = false,
-    .Delay = 500,
-    .Count = 0,
-    .Search_H = 40,
-    .Search_W = 40,
-};
 
-void img_cross_scan()
+
+void img_cross_scan(void)
 {
     static TickType_t LastTime;
     uint32_t white_count = 0 ;
@@ -1018,6 +1091,63 @@ void img_cross_scan()
                 LastTime = xTaskGetTickCount();
             }
         }
-        OLED_Printf(80, 6, "SS:%6d",Cross.Count);
+        OLED_Printf(80, 6, "COS:%5d",Cross.Count);
+    }
+}
+
+/**
+  * @brief 起步图像算法延时定时器
+  * @brief 原因：中线算法起步时与刹车线冲突，圆环检测与刹车线冲突。
+  * @brief 解决方法：之前使用特殊中线算法，等待冲出起跑线后开始处理圆环。
+  */
+void img_start_timer(void)
+{
+    if (Process.Flag == false)
+    {
+        if (xTaskGetTickCount() > Process.LastTime + Process.Delay)
+        {
+            Process.Flag = true;
+            Circle.Count = 0;
+            Cross.Count = 0;
+            PRINTF("--> Start ALL Type Image Process!\r\n");
+        }
+    }
+}
+
+/**
+  * @brief 发车信号
+  * @brief 注意：发车时必须在HMI消息处理中调用！
+  * @brief 运行此函数开始重新倒计时。
+  */
+void img_start_signal(void)
+{
+    Process.LastTime = xTaskGetTickCount();
+    Process.Flag = false;
+}
+
+
+void img_Slope_scan(void)
+{
+    static TickType_t LastTime;
+    if(Slope.ON == true)
+    {
+        if(Slope.Flag == true)
+        {
+            if (xTaskGetTickCount() > LastTime +Slope.Delay)
+            {
+                Slope.Flag = false;
+            }
+            else
+            {
+                Motor.Final_PWM_L = Angle.PWM - 0.4*Speed.PWM + Direction.PWM;
+                Motor.Final_PWM_R = Angle.PWM - 0.4*Speed.PWM - Direction.PWM;
+            }
+        }
+        else
+        {
+            if(sensor.GyroX < -40)
+                Slope.Flag = true;
+                LastTime = xTaskGetTickCount();
+        }
     }
 }

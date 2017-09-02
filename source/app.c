@@ -31,7 +31,6 @@ mSpeed_t motorInfo;     //电机信息全局变量
 sbusChannel_t rcInfo;   //遥控通道全局变量
 
 uint8_t Pixmap[60][80] = {0};   //解压后图像
-int8_t offset;
 
 /*
  * @brief 应用程序入口
@@ -104,13 +103,28 @@ static void debug_Task(void *pvParameters)
         RTT_Char = GETCHAR();
         switch (RTT_Char)
         {
-            case 'i':
+            case '1':
             {
-                PRINTF("\r\n");
-                PRINTF("Angle.P = %d.%d | Angle.D = %d \r\n", (int) Angle.P,
-                        ((int) (Angle.P * 10)) % 10, (int) (Angle.D * 1000));
-                PRINTF("Dead.L = %d | Dead.R = %d \r\n",
-                        (int) (Motor.Dead_L * 10), (int) (Motor.Dead_R * 10));
+                Speed.I_Error_Start += 1;
+                PRINTF("Direction.P = %d / 1000\r\n", (int) Speed.I_Error_Start);
+                break;
+            }
+            case '2':
+            {
+                Speed.I_Error_Start -= 1;
+                PRINTF("Direction.P = %d / 1000\r\n", (int) Speed.I_Error_Start);
+                break;
+            }
+            case '3':
+            {
+                Direction.D += 0.0001;
+                PRINTF("Direction.D = %d / 10000\r\n", (int) (Direction.D * 10000));
+                break;
+            }
+            case '4':
+            {
+                Direction.D -= 0.0001;
+                PRINTF("Direction.D = %d / 10000\r\n", (int) (Direction.D * 10000));
                 break;
             }
             default:
@@ -143,8 +157,27 @@ static void image_Task(void *pvParameters)
     while (1)
     {
         CAM_ImageExtract(Pixmap);
-        img_cross_search();
-        img_find_middle();
+        img_start_timer();
+
+        img_brake_scan();
+        img_barrier_scan();
+
+        if (Process.Flag == true)
+        {
+            img_circle_scan();
+            img_circle_search();
+
+            img_cross_scan();
+//            img_smalls_search();
+//            img_cross_search();
+
+            img_find_middle();
+            img_Slope_scan();
+        }
+        else
+        {
+            img_find_middle_start();
+        }
 
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
@@ -203,8 +236,6 @@ static void disp_Task(void *pvParameters)
         OLED_DrawImage_80x60(Pixmap);
 
         OLED_Printf(80, 0, "EP:%6d", (int) ((sensor.Pitch - Angle.A_Bias) * 100.f));
-        OLED_Printf(80, 1, "GX:%6d", (int) ((sensor.GyroX - Angle.G_Bias) * 100.f));
-        OLED_Printf(80, 2, "GZ:%6d", (int) ((sensor.GyroZ - Direction.G_Bias) * 100.f));
 
         OLED_Refresh();
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -284,20 +315,32 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName)
   */
 static void PID_Process(void)
 {
+    static int i = 0;
+
     Motor_GetCnt(&motorInfo);
 
-    Speed.Goal = (rcInfo.ch[2] - 299) * 4;
+//    Speed.Goal = (rcInfo.ch[2] - 299) * 4;
 
     Speed_Control(motorInfo.cntL, motorInfo.cntR);
     Angle_Control(sensor.Pitch, sensor.GyroX);
-    Direction_Control(offset, sensor.GyroZ);
-//    Direction_Control((rcInfo.ch[0]-1000)/20, sensor.GyroZ);
+    Direction_Control(Process.Turn, Barrier.Offset, sensor.GyroZ);
+//    Direction_Control((rcInfo.ch[0]-1000)/20, 0, sensor.GyroZ);
     Motor_Control(&motorInfo.pwmL, &motorInfo.pwmR);
 
-    if (rcInfo.ch[4] < 1000)
+    Failsafe_Control(sensor.Pitch, 0);
+
+    if(rcInfo.ch[4] != 0)
     {
-        motorInfo.pwmL = 0;
-        motorInfo.pwmR = 0;
+        if (rcInfo.ch[4] < 1000)
+        {
+            motorInfo.pwmL = 0;
+            motorInfo.pwmR = 0;
+            Failsafe.ON = false;
+        }
+        else
+        {
+            Failsafe.ON = true;
+        }
     }
 
     Motor_ChangeDuty(motorInfo);
@@ -305,12 +348,21 @@ static void PID_Process(void)
     if (rcInfo.ch[5] > 1024)
     {
         Blackbox_SYNC();
-//        Blackbox_CIR(CAM_GetBitmap(), 600);
-//        Blackbox_DDR(0, &Angle.PWM, FLOAT);
-//        Blackbox_DDR(1, &Speed.PWM, FLOAT);
-//        Blackbox_DDR(2, &Direction.PWM, FLOAT);
+        i++;
+        if(i == 4)
+        {
+            Blackbox_CIR(CAM_GetBitmap(), 600);
+            i = 0;
+        }
+ //       Blackbox_DDR(0, &Circle.Count, UINT32);
+        Blackbox_DDR(0, &Angle.PWM, FLOAT);
+        Blackbox_DDR(1, &Speed.PWM, FLOAT);
+        Blackbox_DDR(2, &Direction.PWM, FLOAT);
         Blackbox_DDR(3, &sensor.Pitch, FLOAT);
         Blackbox_DDR(4, &sensor.GyroX, FLOAT);
-//        Blackbox_DDR(5, &sensor.GyroZ, FLOAT);
+        Blackbox_DDR(5, &sensor.GyroZ, FLOAT);
+        Blackbox_DDR(6, &Process.Turn, FLOAT);
+//        Blackbox_DDR(6, &motorInfo.pwmL, INT8);
+//        Blackbox_DDR(7, &motorInfo.pwmR, INT8);
     }
 }

@@ -34,30 +34,30 @@ void PidControllor_Init(void)
     Direction.ON = true;
 
     /* 默认PID参数设置 */
-    Motor.Dead_L = 2.f;
-    Motor.Dead_R = 2.4f;
+    Motor.Dead_L = 2.0f;
+    Motor.Dead_R = 2.0f;
 
-    Angle.A_Bias = -16.5f;
+    Angle.A_Bias = -14.5f;
     Angle.G_Bias = 0.f;
-    Angle.P = 9.0f;
-    Angle.D = 0.028f;
+    Angle.P = 6.0f;
+    Angle.D = 0.3f;
 
     Speed.Goal = 0.f;
     Speed.P = 0.05f;
-    Speed.I = 0.0075f;
-    Speed.I_Error_Start = 2500;
-    Speed.I_Limit_PWM_max = 35;
-    Speed.I_Limit_PWM_min = -35;
+    Speed.I = Speed.P / 10 ;
+    Speed.I_Error_Start = 1000;
+    Speed.I_Limit_PWM_max = 5;
+    Speed.I_Limit_PWM_min = -5;
     Speed.PWM_Integral = 0.f;
 
     Direction.G_Bias = 0.f;
-    Direction.P = 0.95f;
-    Direction.D = 0.055f;
+    Direction.P = 0.98f;
+    Direction.D = 0.056f;
 
     /* 默认失控保护参数 */
     Failsafe.ON = true;
-    Failsafe.Pitch_Max = 25.f;
-    Failsafe.Pitch_Min = -30.f;
+    Failsafe.Pitch_Max = 20.f;
+    Failsafe.Pitch_Min = -25.f;
 }
 
 /**
@@ -232,11 +232,10 @@ void Failsafe_Control(float angle, int debug)
     }
     else
     {
-        if (Failsafe.Protected == false)
-            return;
         Failsafe.Protected = false;
         Angle.ON = true;
         Speed.ON = true;
         Direction.ON = true;
+        Speed.Goal = 0;
     }
 }

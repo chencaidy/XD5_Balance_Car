@@ -31,9 +31,20 @@ extern carMotor_t Motor;            //PID控制器 - 电机输出参数
 extern carFailsafe_t Failsafe;      //PID控制器 - 失控保护参数
 
 /* 图像参数全局传递 */
+extern imgProcess_t Process;
 extern imgBrake_t Brake;
 extern imgBarrier_t Barrier;
 extern imgCircle_t Circle;
+extern imgCross_t Cross;
+extern imgSlope_t Slope;
+
+extern float normpdf35[60];
+extern float normpdf37[60];
+extern float normpdf40[60];
+extern float normpdf43[60];
+extern float normpdf45[60];
+extern float normpdf47[60];
+extern float normpdf50[60];
 
 /* 配置信息全局传递 */
 extern camConf_t camera;
