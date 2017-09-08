@@ -599,6 +599,8 @@ void img_circle_search(void)
     uint16_t black_count = 0;
     uint16_t small_black_count = 0;
     uint8_t black[80] = { 0 };
+    uint8_t left_width[60] = {0};
+    uint8_t right_width[60] = {0};
     uint8_t start_y = 0, start_x = 0, end_y = 0, end_x = 0;
     uint8_t all_white_count = 0;
 //    uint8_t new_circle_rate= 0;
@@ -651,7 +653,28 @@ void img_circle_search(void)
                 }
             }
 
-            if (all_white_count > 5 && circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环    左转
+            for (h = 60; h >= 20; h--)                          //记录左边行的黑线宽度
+            {
+                for (w = 0; w <= 79; w++)
+                {
+                    left_width[h] = w;
+                    if (Pixmap[h][w] == 0)
+                        break;
+                }
+            }
+
+            for (h = 59; h >= 20; h--)                          //记录右边行的黑线宽度
+            {
+                for (w = 70; w >= 0; w--)
+                {
+                    right_width[h] = 79 - w;
+                    if (Pixmap[h][w] == 0)
+                        break;
+                }
+            }
+
+
+            if (circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环    左转
             {
 
                 for (w = 79; w > 40; w--)
@@ -668,8 +691,16 @@ void img_circle_search(void)
                         start_y = 59;
                     }
                 }
-                end_x = 40;
-                end_y = black[40];
+
+                for (h = 20; h < 58; h++)
+                {
+                    if ((right_width[h + 1] - right_width[h]) > 10 && right_width[h + 1]>= 75)
+                    {
+                        end_x = 80- right_width[h];
+                        end_y = h;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -718,9 +749,18 @@ void img_circle_search(void)
                         break;
                 }
             }
-        }
 
-        if (all_white_count > 5 && circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环         右转
+            for (h = 59; h >= 20; h--)                          //记录左边行的黑线宽度
+            {
+                for (w = 0; w <= 79; w++)
+                {
+                    left_width[h] = w;
+                    if (Pixmap[h][w] == 0)
+                        break;
+                }
+            }
+
+        if (circle_rate > 0.5) //利用全白行和中心圆近似率来判断圆环         右转
         {
             for (w = 0; w < 40; w++)
             {
@@ -736,17 +776,25 @@ void img_circle_search(void)
                     start_y = 59;
                 }
             }
-            end_x = 40;
-            end_y = black[40];
+            for (h = 25; h < 58; h++)
+            {
+                if ((left_width[h + 1] - left_width[h]) > 10 && left_width[h+1] >=75)
+                {
+                    end_x = left_width[h];
+                    end_y = h;
+                    break;
+                }
+            }
         }
     }
-
+  }
     myline1(start_x, start_y, end_x, end_y);
 //    new_circle_rate = (int8_t)(circle_rate * 10);
 
 //    OLED_Printf(80, 6, "S3:%6d", all_white_count);
 //    OLED_Printf(80, 7, "S4:%6d", new_circle_rate);
 }
+
 
 /**
   * @brief 圆环右补线（已测试）
